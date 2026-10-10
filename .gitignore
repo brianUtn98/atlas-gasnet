@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Node.js / TypeScript
+node_modules/
+dist/
+.turbo/
+
+# Notebooks and local tooling
+.ipynb_checkpoints/
+.env
+.env.*
+!.env.example
+
+# Generated datasets and model artifacts
+data/*.csv
+data/*.csv.gz
+data/*.parquet
+data/*.json
+models/
+checkpoints/
+
+# Local OS/editor files
+.DS_Store
+.idea/
+.vscode/
