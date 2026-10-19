@@ -9,8 +9,8 @@ The first experiment will use Ethereum Mainnet and a small set of smart contract
 ## Planned workflow
 
 1. Define the proof-of-concept scope and eligible pre-execution features.
-2. Collect transactions and receipts from an Ethereum RPC endpoint.
-3. Store a documented, deduplicated dataset in CSV or Parquet format.
+2. Collect transactions and receipts from validated Ethereum RPC endpoints using the historical extractor.
+3. Store a documented, deduplicated dataset in Parquet format (CSV export is deferred).
 4. Explore and preprocess the data without introducing temporal or execution-result leakage.
 5. Establish a median-by-function baseline.
 6. Train an MLP regressor in PyTorch.
@@ -38,4 +38,4 @@ Public Ethereum RPC access, configuration templates, checkpoints, and dataset pr
 
 ## Current status
 
-**Planning / Proof of Concept.** This repository intentionally contains no implementation yet.
+**Proof of Concept.** The TypeScript historical extractor is implemented; data preparation, modeling and evaluation remain planned. Extraction supports ETHEREUM, ETHEREUM_SEPOLIA, AVALANCHE (C-Chain), AVALANCHE_FUJI, POLYGON and POLYGON_AMOY. This operational support does not broaden the initial Ethereum Mainnet experiment or imply that testnet and mainnet observations should be pooled. See [extractor.md](extractor.md) for executable configuration, data dictionary, public endpoint limitations and resume instructions.

@@ -1,0 +1,12 @@
+network: ETHEREUM
+fromBlock: "19000000"
+toBlock: "19000002"
+contracts:
+  - address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+    functions:
+      - transfer(address,uint256)
+outputDir: data/extractions/usdc-example
+batchSize: 100
+retries: 3
+healthRefreshIntervalMs: 30000
+probeTimeoutMs: 5000

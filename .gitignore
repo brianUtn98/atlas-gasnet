@@ -28,3 +28,9 @@ checkpoints/
 .DS_Store
 .idea/
 .vscode/
+
+# Custom endpoints and extraction runs (public and placeholder examples are versioned)
+config/*.local.yaml
+config/*.local.yml
+data/extractions/
+*.tmp

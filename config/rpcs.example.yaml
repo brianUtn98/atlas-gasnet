@@ -1,0 +1,4 @@
+# Copy to rpcs.local.yaml and replace placeholders. The file replaces the public map.
+ETHEREUM:
+  - https://YOUR_RPC_HOST/YOUR_API_KEY
+  - https://YOUR_SECOND_RPC_HOST/YOUR_API_KEY

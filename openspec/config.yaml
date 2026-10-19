@@ -1,0 +1,43 @@
+schema: spec-driven
+
+context: |
+  Atlas GasNet is an academic PoC for the Advanced Artificial Intelligence course at UTN FRBA.
+  It predicts Ethereum Mainnet transaction gasUsed before execution as a supervised regression problem.
+  Confirmed technology stack:
+    - Extraction: TypeScript with viem for Ethereum RPC access.
+    - Data preparation: Python with Pandas and NumPy.
+    - Modeling: PyTorch for the MLP, compared against a median-by-function baseline.
+    - Evaluation: scikit-learn for metrics.
+    - Dataset storage: Parquet as the primary format, with CSV as an optional export.
+    - Exploration and training: notebooks in Google Colab.
+  Start with a small set of contracts and functions; use only pre-execution inputs
+  and chronological evaluation to avoid execution-result and temporal leakage.
+  Write all artifacts and project documentation in English.
+  Use README.md and docs/PROJECT.md as project references; avoid repeating them.
+  Keep this academic PoC small, reproducible, and easy to explain.
+  Prefer simple solutions and minimal dependencies over production infrastructure.
+  New code must include unit tests covering the behavior being introduced,
+  including relevant success, boundary, and failure cases. Keep unit tests
+  deterministic and independent of live RPC endpoints or private credentials.
+  Distinguish confirmed decisions from assumptions and open questions.
+  Planning does not authorize implementation; wait for an explicit request to apply.
+
+rules:
+  proposal:
+    - Keep it under 250 words; state the goal, scope, and non-goals.
+    - Reference related GitHub issues instead of duplicating their checklists.
+  specs:
+    - Specify only observable requirements and the scenarios needed to verify them.
+    - For data or modeling changes, address pre-execution feature eligibility and leakage.
+  design:
+    - Create only when the schema's conditions apply; keep decisions and trade-offs brief.
+  tasks:
+    - Use a short checklist of concrete tasks, each with a clear verification step.
+    - Avoid separate phases for work that fits naturally in one task.
+    - Include unit tests in each task that introduces code, naming the relevant success, boundary, and failure cases; integration tests complement rather than replace unit tests.
+
+operations:
+  apply:
+    guidance:
+      - Run checks proportional to the change and report results briefly.
+      - Add and run unit tests for each new code behavior, covering the cases in its task; use mocks or fixtures for external dependencies and report any checks that could not run.
