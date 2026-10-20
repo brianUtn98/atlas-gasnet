@@ -47,8 +47,8 @@ The initial dataset target is 5,000–10,000 transactions, subject to availabili
 
 ## Reproducibility and privacy
 
-Public Ethereum RPC access, configuration templates, checkpoints, and dataset provenance should be documented. Secrets, API keys, private RPC URLs, and large generated datasets must remain outside version control.
+Public Ethereum RPC access, configuration templates, checkpoints, and dataset provenance should be documented. Secrets, API keys, private RPC URLs, local extraction runs and model checkpoints remain outside version control. The explicitly approved, bounded PoC release under `data/poc/v1/` is versioned in JSON and PyTorch tensor format, with immutable source provenance, hashes and training-only preprocessing; see its [dataset card](../data/poc/v1/README.md).
 
 ## Current status
 
-**Proof of Concept.** The TypeScript historical extractor is implemented; data preparation, modeling and evaluation remain planned. Extraction supports ETHEREUM, ETHEREUM_SEPOLIA, AVALANCHE (C-Chain), AVALANCHE_FUJI, POLYGON and POLYGON_AMOY. This operational support does not broaden the initial Ethereum Mainnet experiment or imply that testnet and mainnet observations should be pooled. See [extractor.md](extractor.md) for executable configuration, data dictionary, public endpoint limitations and resume instructions.
+**Proof of Concept.** The TypeScript historical extractor and the reproducible JSON/PyTorch dataset snapshot are implemented. The snapshot contains 15,937 distinct Ethereum transactions, with preprocessing fitted only on training. Model training and evaluation remain planned. Extraction supports ETHEREUM, ETHEREUM_SEPOLIA, AVALANCHE (C-Chain), AVALANCHE_FUJI, POLYGON and POLYGON_AMOY. This operational support does not broaden the initial Ethereum Mainnet experiment or imply that testnet and mainnet observations should be pooled. See [extractor.md](extractor.md) for executable configuration, data dictionary, public endpoint limitations and resume instructions.

@@ -19,7 +19,25 @@ This repository supports the Advanced Artificial Intelligence course at UTN FRBA
 
 ## Status
 
-**Proof of Concept — historical extractor implemented; modeling planned.**
+The [versioned PoC dataset](data/poc/v1/README.md) contains 15,937 real Ethereum
+transactions in four disjoint train/validation/test/unseen-contract partitions,
+with original JSON and PyTorch `.pt` tensors. Load it without RPC access:
+
+```python
+from torch.utils.data import DataLoader
+from training.dataset import GasDataset
+
+train_loader = DataLoader(GasDataset("train"), batch_size=64, shuffle=True)
+```
+
+Install `training/requirements.txt` with Python 3.12+ first. The dataset card
+documents train-only preprocessing, missing-state indicators, baseline inputs and
+the held-out evaluation policy. Verify with
+`python -m unittest training.test_dataset -v`. Python formatting/lint uses Ruff:
+install `training/requirements-dev.txt`, then run `ruff format training` and
+`ruff check training`.
+
+**Proof of Concept — historical extractor and PyTorch dataset prepared; modeling planned.**
 
 Extraction supports Ethereum Mainnet/Sepolia, Avalanche C-Chain/Fuji, and Polygon/Amoy. The first ML experiment remains scoped to Ethereum Mainnet; supporting testnets does not authorize pooling their data.
 

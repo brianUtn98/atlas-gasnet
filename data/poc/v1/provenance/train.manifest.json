@@ -1,0 +1,834 @@
+{
+  "stateEnrichment": {
+    "enabled": true,
+    "failurePolicy": "record_null_and_continue",
+    "reference": "end_of_previous_block",
+    "ratioEncoding": "reduced_unsigned_rational_string",
+    "ratioZeroDenominator": "null",
+    "limitation": "Prior-block state approximates pre-transaction state; earlier same-block operations may change balances."
+  },
+  "schemaVersion": "3",
+  "selection": {
+    "version": 1,
+    "schemaVersion": "3",
+    "erc20BalanceEnrichment": true,
+    "network": "ETHEREUM",
+    "fromBlock": "19000000",
+    "toBlock": "19001439",
+    "contracts": [
+      {
+        "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "erc20": true,
+        "functions": [
+          "0x095ea7b3",
+          "0x23b872dd",
+          "0xa9059cbb"
+        ]
+      },
+      {
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "erc20": true,
+        "functions": [
+          "0x095ea7b3",
+          "0x23b872dd",
+          "0x2e1a7d4d",
+          "0xa9059cbb",
+          "0xd0e30db0"
+        ]
+      }
+    ]
+  },
+  "fingerprint": "c90fec9400ba36bc0e3498063362497045f9bb0b5725189b439181c157bd4c27",
+  "features": [
+    "tokenAmount",
+    "isZeroAmount",
+    "isSelfTransfer",
+    "senderHasEnoughBalance",
+    "amountToSenderBalanceRatio",
+    "senderTokenBalanceBeforeBlock",
+    "recipientTokenBalanceBeforeBlock",
+    "recipientBalanceWasZero",
+    "senderBalanceEqualsAmount",
+    "from",
+    "to",
+    "type",
+    "nonce",
+    "value",
+    "gasLimit",
+    "gasPrice",
+    "maxFeePerGas",
+    "maxPriorityFeePerGas",
+    "input",
+    "accessList",
+    "functionSelector",
+    "calldataBytes",
+    "calldataZeroBytes",
+    "calldataNonzeroBytes",
+    "accessListAddressCount",
+    "accessListStorageKeyCount",
+    "chainName"
+  ],
+  "initialPredictors": [
+    "chainName",
+    "to",
+    "calldataBytes",
+    "functionSelector",
+    "calldataNonzeroBytes",
+    "value",
+    "accessListStorageKeyCount"
+  ],
+  "targets": [
+    "gasUsed"
+  ],
+  "audit": [
+    "stateBlockNumber",
+    "stateEnrichmentStatus",
+    "stateEnrichmentReason",
+    "chainId",
+    "transactionHash",
+    "blockHash",
+    "blockNumber",
+    "transactionIndex",
+    "blockTimestamp",
+    "receiptStatus",
+    "schemaVersion"
+  ],
+  "physicalSchema": [
+    {
+      "name": "tokenAmount",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "isZeroAmount",
+      "type": "INT32",
+      "nullable": true
+    },
+    {
+      "name": "isSelfTransfer",
+      "type": "INT32",
+      "nullable": true
+    },
+    {
+      "name": "senderHasEnoughBalance",
+      "type": "INT32",
+      "nullable": true
+    },
+    {
+      "name": "amountToSenderBalanceRatio",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "senderTokenBalanceBeforeBlock",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "recipientTokenBalanceBeforeBlock",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "recipientBalanceWasZero",
+      "type": "INT32",
+      "nullable": true
+    },
+    {
+      "name": "senderBalanceEqualsAmount",
+      "type": "INT32",
+      "nullable": true
+    },
+    {
+      "name": "from",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "to",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "type",
+      "type": "INT32",
+      "nullable": false
+    },
+    {
+      "name": "nonce",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "value",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "gasLimit",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "gasPrice",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "maxFeePerGas",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "maxPriorityFeePerGas",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "input",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "accessList",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "functionSelector",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "calldataBytes",
+      "type": "INT32",
+      "nullable": false
+    },
+    {
+      "name": "calldataZeroBytes",
+      "type": "INT32",
+      "nullable": false
+    },
+    {
+      "name": "calldataNonzeroBytes",
+      "type": "INT32",
+      "nullable": false
+    },
+    {
+      "name": "accessListAddressCount",
+      "type": "INT32",
+      "nullable": false
+    },
+    {
+      "name": "accessListStorageKeyCount",
+      "type": "INT32",
+      "nullable": false
+    },
+    {
+      "name": "chainName",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "gasUsed",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "stateBlockNumber",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "stateEnrichmentStatus",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "stateEnrichmentReason",
+      "type": "STRING",
+      "nullable": true
+    },
+    {
+      "name": "chainId",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "transactionHash",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "blockHash",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "blockNumber",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "transactionIndex",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "blockTimestamp",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "receiptStatus",
+      "type": "STRING",
+      "nullable": false
+    },
+    {
+      "name": "schemaVersion",
+      "type": "STRING",
+      "nullable": false
+    }
+  ],
+  "outputs": {
+    "formats": [
+      "parquet",
+      "pdf",
+      "json"
+    ],
+    "parquetFiles": [
+      "part-19000000-19000024.parquet",
+      "part-19000025-19000049.parquet",
+      "part-19000050-19000074.parquet",
+      "part-19000075-19000099.parquet",
+      "part-19000100-19000124.parquet",
+      "part-19000125-19000149.parquet",
+      "part-19000150-19000174.parquet",
+      "part-19000175-19000199.parquet",
+      "part-19000200-19000224.parquet",
+      "part-19000225-19000249.parquet",
+      "part-19000250-19000274.parquet",
+      "part-19000275-19000299.parquet",
+      "part-19000300-19000324.parquet",
+      "part-19000325-19000349.parquet",
+      "part-19000350-19000374.parquet",
+      "part-19000375-19000399.parquet",
+      "part-19000400-19000424.parquet",
+      "part-19000425-19000449.parquet",
+      "part-19000450-19000474.parquet",
+      "part-19000475-19000499.parquet",
+      "part-19000500-19000524.parquet",
+      "part-19000525-19000549.parquet",
+      "part-19000550-19000574.parquet",
+      "part-19000575-19000599.parquet",
+      "part-19000600-19000624.parquet",
+      "part-19000625-19000649.parquet",
+      "part-19000650-19000674.parquet",
+      "part-19000675-19000699.parquet",
+      "part-19000700-19000724.parquet",
+      "part-19000725-19000749.parquet",
+      "part-19000750-19000774.parquet",
+      "part-19000775-19000799.parquet",
+      "part-19000800-19000824.parquet",
+      "part-19000825-19000849.parquet",
+      "part-19000850-19000874.parquet",
+      "part-19000875-19000899.parquet",
+      "part-19000900-19000924.parquet",
+      "part-19000925-19000949.parquet",
+      "part-19000950-19000974.parquet",
+      "part-19000975-19000999.parquet",
+      "part-19001000-19001024.parquet",
+      "part-19001025-19001049.parquet",
+      "part-19001050-19001074.parquet",
+      "part-19001075-19001099.parquet",
+      "part-19001100-19001124.parquet",
+      "part-19001125-19001149.parquet",
+      "part-19001150-19001174.parquet",
+      "part-19001175-19001199.parquet",
+      "part-19001200-19001224.parquet",
+      "part-19001225-19001249.parquet",
+      "part-19001250-19001274.parquet",
+      "part-19001275-19001299.parquet",
+      "part-19001300-19001324.parquet",
+      "part-19001325-19001349.parquet",
+      "part-19001350-19001374.parquet",
+      "part-19001375-19001399.parquet",
+      "part-19001400-19001424.parquet",
+      "part-19001425-19001439.parquet"
+    ],
+    "jsonFile": "transactions.json",
+    "pdfFile": "report.pdf"
+  },
+  "parts": [
+    {
+      "file": "part-19000000-19000024.parquet",
+      "fromBlock": "19000000",
+      "toBlock": "19000024",
+      "lastBlockHash": "0xc436c489992f3ffd82f7fbbf4ffae7d9d57345e30003dee9d46a038c6087e70e",
+      "rows": 129,
+      "sha256": "19fefdf4ca75e85960a71b4d849f289fd785a053b5a55bf2458266714e8763f8"
+    },
+    {
+      "file": "part-19000025-19000049.parquet",
+      "fromBlock": "19000025",
+      "toBlock": "19000049",
+      "lastBlockHash": "0x88ede6bf7022c0b9cede977de9c2f5d307fac53429bcc7f6bd5c49f06e8d7389",
+      "rows": 101,
+      "sha256": "66620681e538e36ecbe4f63c667c1e75f93143152cf8543a5716ffad282757a1"
+    },
+    {
+      "file": "part-19000050-19000074.parquet",
+      "fromBlock": "19000050",
+      "toBlock": "19000074",
+      "lastBlockHash": "0xf030ff940965f52be86069eee6e89a6f9b15f61ce320da8fe11ea561883c83e8",
+      "rows": 140,
+      "sha256": "2f587e7c4514f41e056645169801db3c3073716ca1bd146d4f19fd56fdc89e56"
+    },
+    {
+      "file": "part-19000075-19000099.parquet",
+      "fromBlock": "19000075",
+      "toBlock": "19000099",
+      "lastBlockHash": "0x21b4f84c8f6aa18ffc2f434e43e64f116de5632e70aae542ac73fb8878a2db41",
+      "rows": 79,
+      "sha256": "5bad20661fe1d248b27960dbcac06319e67e5a9279f5320cbc729a1e2ae19fae"
+    },
+    {
+      "file": "part-19000100-19000124.parquet",
+      "fromBlock": "19000100",
+      "toBlock": "19000124",
+      "lastBlockHash": "0x471b2cc8d3ba9f98c4ad169a15ff6b8b9d564070eb9ee8d0b63a1c94b97f1a9e",
+      "rows": 117,
+      "sha256": "961ccffab763c17225e988e4e290b4133f922ce44e40c0815de13969ceca641b"
+    },
+    {
+      "file": "part-19000125-19000149.parquet",
+      "fromBlock": "19000125",
+      "toBlock": "19000149",
+      "lastBlockHash": "0xdc63f9b912320a71e6d9dc34f59abb7f5901dd8f6609005c15b96164f0e4f152",
+      "rows": 96,
+      "sha256": "ce6cb8c500350d7a710e3b0f021ccd15fe64b5268b7729e430af9ee950cce3b0"
+    },
+    {
+      "file": "part-19000150-19000174.parquet",
+      "fromBlock": "19000150",
+      "toBlock": "19000174",
+      "lastBlockHash": "0x6dd3e2d98c75ab80f860e42d1ae49893d9a9af3cf9f4e919e71fb7dc986620e7",
+      "rows": 100,
+      "sha256": "dc4a2e60b7b6e1aa99b9ddce125de7fab2c0bf07a191eb137f7d5cd2927f1293"
+    },
+    {
+      "file": "part-19000175-19000199.parquet",
+      "fromBlock": "19000175",
+      "toBlock": "19000199",
+      "lastBlockHash": "0x1f34dde0f73eb69054baaaea336cd2880b0206d8bdd3531ba461288b13c83434",
+      "rows": 109,
+      "sha256": "1e258d3ba1416135e3520ceeeae31421bd6e0a833946b1c1846122b9b9b74d0a"
+    },
+    {
+      "file": "part-19000200-19000224.parquet",
+      "fromBlock": "19000200",
+      "toBlock": "19000224",
+      "lastBlockHash": "0x6839a8319505426995335abe46861e4617c589cd63e04aa38e891f146c604836",
+      "rows": 135,
+      "sha256": "e64c2ec7e040909e8d6fad2a6b6a6ae6be435477f1592caebb9663ee79498849"
+    },
+    {
+      "file": "part-19000225-19000249.parquet",
+      "fromBlock": "19000225",
+      "toBlock": "19000249",
+      "lastBlockHash": "0xd6946925356b69051fcc7c4992b6ac93e5d12d27bcb6d21dff9c05cfde3e2047",
+      "rows": 137,
+      "sha256": "34abeaae10c7443257e3b70623c95634ec34886808d7faccf9545675aee5eb37"
+    },
+    {
+      "file": "part-19000250-19000274.parquet",
+      "fromBlock": "19000250",
+      "toBlock": "19000274",
+      "lastBlockHash": "0xa45eb8aff9154e2df4b5d38aa0e2da6802990b8c08f44419ee7c8bc9391b6c4a",
+      "rows": 110,
+      "sha256": "99b3958adbacc2d4c93eb4999485f153450e93868e6b260d684c35389f9840b1"
+    },
+    {
+      "file": "part-19000275-19000299.parquet",
+      "fromBlock": "19000275",
+      "toBlock": "19000299",
+      "lastBlockHash": "0xfc52ae32a45ed0f8b5551232a100541432aaf4227f11bc64eb490e1814227f5d",
+      "rows": 111,
+      "sha256": "dd52cabdf5439d74601ba9acd746a1eff620107d1f5e512fa44499545448d830"
+    },
+    {
+      "file": "part-19000300-19000324.parquet",
+      "fromBlock": "19000300",
+      "toBlock": "19000324",
+      "lastBlockHash": "0x0a3629f2b2d0802360f49d87474bbb26de27ace78a3ff74c41d799a1d0aeb05c",
+      "rows": 118,
+      "sha256": "73ed69583f3e02748c4646b0f6bcb3dae5c2840fd1acc49df4b9977d96c3001f"
+    },
+    {
+      "file": "part-19000325-19000349.parquet",
+      "fromBlock": "19000325",
+      "toBlock": "19000349",
+      "lastBlockHash": "0xa8c14d4121a0b6c77478040e58fca27b49464b5dd424443fd206eee6e34c23c4",
+      "rows": 141,
+      "sha256": "387f7a2ba8737760c6a2aef33e547c630fdab813fa32385a5a0bde7421751ea6"
+    },
+    {
+      "file": "part-19000350-19000374.parquet",
+      "fromBlock": "19000350",
+      "toBlock": "19000374",
+      "lastBlockHash": "0x20893cbea9af76f468d762cd9e03fd4306bc750f2ef421687f00b3fcd1596557",
+      "rows": 167,
+      "sha256": "f27c08228ef4c7e6ded133a48663f19c315f6e370a5fa9e3065d87def7b9cc4d"
+    },
+    {
+      "file": "part-19000375-19000399.parquet",
+      "fromBlock": "19000375",
+      "toBlock": "19000399",
+      "lastBlockHash": "0xd7b186789552d8b805384157722a970be8c42f9838cd114171c1915cff46a6c5",
+      "rows": 117,
+      "sha256": "7df7e9846b649757e56f61553c05b2d1927a5e7bfcb857e8caa6c3e8823ee8da"
+    },
+    {
+      "file": "part-19000400-19000424.parquet",
+      "fromBlock": "19000400",
+      "toBlock": "19000424",
+      "lastBlockHash": "0xf71185ddb6c05c272403c6ee5b4f101eb8c1aeab0feed756048bc674710bf557",
+      "rows": 131,
+      "sha256": "1d936e7dff8d43bb096996da08c44b0ee2555aa3c8a083846cb734e0417eca65"
+    },
+    {
+      "file": "part-19000425-19000449.parquet",
+      "fromBlock": "19000425",
+      "toBlock": "19000449",
+      "lastBlockHash": "0xaee64bd05e971962f1168697dd300679d14d886d062abb7edcfeac80a399ee98",
+      "rows": 122,
+      "sha256": "148e86b4921dd748609684abbc4b50970679de596b7898488943a95ec74c86f4"
+    },
+    {
+      "file": "part-19000450-19000474.parquet",
+      "fromBlock": "19000450",
+      "toBlock": "19000474",
+      "lastBlockHash": "0x584acf8ed7cb3e28dfb01ab6c81d976ff7b619ad461c21a8cef70e0e965b769a",
+      "rows": 134,
+      "sha256": "18b4f399c9fa8f18310a57b293a4b80ab40b0745953f8190dfe58e9109776b56"
+    },
+    {
+      "file": "part-19000475-19000499.parquet",
+      "fromBlock": "19000475",
+      "toBlock": "19000499",
+      "lastBlockHash": "0x52b7d7747e4a678b5bd67de2c14f1e21e1fdceab21d889cb706b9d11c3867ca4",
+      "rows": 120,
+      "sha256": "f219daafe19d108ab7c2764979b4bd31851f4b605d669e5ccc27586f6d9d171a"
+    },
+    {
+      "file": "part-19000500-19000524.parquet",
+      "fromBlock": "19000500",
+      "toBlock": "19000524",
+      "lastBlockHash": "0x61bc8efb62d655649cddd734805a4befcf8a9288f4267950f4cee4ccc60e5e06",
+      "rows": 120,
+      "sha256": "08605ac0b9874bbf2d9574bb61101c6031100be0b90732c71d24a2a34f3ec935"
+    },
+    {
+      "file": "part-19000525-19000549.parquet",
+      "fromBlock": "19000525",
+      "toBlock": "19000549",
+      "lastBlockHash": "0xa70fd1d3350bd533938b6840d6eede4062bedb9c729375e70d2f2493428d399c",
+      "rows": 102,
+      "sha256": "1cfc75b437425f40a50bd45c5207ce4333ff27219c7ababf255f773f0d0b7701"
+    },
+    {
+      "file": "part-19000550-19000574.parquet",
+      "fromBlock": "19000550",
+      "toBlock": "19000574",
+      "lastBlockHash": "0x2f744f420fa8e6204460775bb830832c15fee1bf6f47aa60b5e5e6aa547e3b94",
+      "rows": 97,
+      "sha256": "b750eaa35e76411c25cefcf2313e5523241c5e54903ed5a2eff794ddd4bc8e81"
+    },
+    {
+      "file": "part-19000575-19000599.parquet",
+      "fromBlock": "19000575",
+      "toBlock": "19000599",
+      "lastBlockHash": "0x22f320575791f4c9c2f25beb41d061ed36356dd3069d750183fec17cbc17e727",
+      "rows": 121,
+      "sha256": "cf47169188d6ba65404f7952440ecdacd8c2651d8b55cf0f67249c5f3c548ade"
+    },
+    {
+      "file": "part-19000600-19000624.parquet",
+      "fromBlock": "19000600",
+      "toBlock": "19000624",
+      "lastBlockHash": "0xbe6d5815a635e69f174e4d3351c44f14e5e629d839f15a8bb135a4c2541bebcd",
+      "rows": 130,
+      "sha256": "99151e569c56f59e16bb4a3e8caac1c8df8840af8878d8c123475bcdc1d935c6"
+    },
+    {
+      "file": "part-19000625-19000649.parquet",
+      "fromBlock": "19000625",
+      "toBlock": "19000649",
+      "lastBlockHash": "0xac654ae1e55e3e835e95b3488198efc5ec8402836b495c678470b20e56324f08",
+      "rows": 130,
+      "sha256": "c0109b7a6a8ad1af61bf7981c43e2502f8982b461564946b9d4b4e6f518eda65"
+    },
+    {
+      "file": "part-19000650-19000674.parquet",
+      "fromBlock": "19000650",
+      "toBlock": "19000674",
+      "lastBlockHash": "0xdb13e7fa56e95ba2d0954b53e3b964a2f2512eec62e996d0a2bcb4d41fc03c8c",
+      "rows": 141,
+      "sha256": "bbb193615dba61bfc3777a2515c11976e270af4ab24cdacd7a3d9de8a44d396f"
+    },
+    {
+      "file": "part-19000675-19000699.parquet",
+      "fromBlock": "19000675",
+      "toBlock": "19000699",
+      "lastBlockHash": "0x4f414e65e06bbc13d17de9ec95e6d64d907ba0edf2d06235d02cd5f3c8dd92b8",
+      "rows": 104,
+      "sha256": "565585a1920cef14ed05734a6db8a24d901ba54e528be3d966707033b5c2e016"
+    },
+    {
+      "file": "part-19000700-19000724.parquet",
+      "fromBlock": "19000700",
+      "toBlock": "19000724",
+      "lastBlockHash": "0x1a1baa6daa21b4037728e2b9110227ffe00d441468495ca19ad9a8078afe0913",
+      "rows": 98,
+      "sha256": "34692c9ba09e4f456c48b881f658b87922a78c581f1337c7bc64f14264d507bb"
+    },
+    {
+      "file": "part-19000725-19000749.parquet",
+      "fromBlock": "19000725",
+      "toBlock": "19000749",
+      "lastBlockHash": "0xfbb006cdf80b70c71523bbf32d8f3e3d701a0854fccaaf3c79a0706b505e7e36",
+      "rows": 121,
+      "sha256": "400d36b4165b035775ab6fa17193d2fe0a873a19e4ed219faef8b21a0412e19d"
+    },
+    {
+      "file": "part-19000750-19000774.parquet",
+      "fromBlock": "19000750",
+      "toBlock": "19000774",
+      "lastBlockHash": "0xea6a2ffe75a304b5943300d0320bbdf08f2431acf4ecb9507890a60ddda0fca0",
+      "rows": 120,
+      "sha256": "4ce6a18eaadc70a768c5964ed4a7fcd068d440283d1cbdd0d14e5f9c04467faf"
+    },
+    {
+      "file": "part-19000775-19000799.parquet",
+      "fromBlock": "19000775",
+      "toBlock": "19000799",
+      "lastBlockHash": "0x786f58471735dde4f4dcf37244d513b0a3a28667e5692e78c98cc216fe8fc493",
+      "rows": 90,
+      "sha256": "7ec25f0cbb4e0f9c7ce5c1dc4d029274d1634f6d2305aeffdef35f3be37a89ce"
+    },
+    {
+      "file": "part-19000800-19000824.parquet",
+      "fromBlock": "19000800",
+      "toBlock": "19000824",
+      "lastBlockHash": "0x318b146ff090af080cb565b974ca8d8f3813c0c0cbe327f38dc7db6fa6840579",
+      "rows": 115,
+      "sha256": "b4273f31efdd1480a081bfea76fdcef3105d2ad953a9135222b1b3b252722424"
+    },
+    {
+      "file": "part-19000825-19000849.parquet",
+      "fromBlock": "19000825",
+      "toBlock": "19000849",
+      "lastBlockHash": "0x5a31f23f3f3365f9edd092f3372b6943ffba8324defb54f3ba80036e6dc8d9bd",
+      "rows": 146,
+      "sha256": "1f7b7961bfbd53075e000299c041141bd23d0036fac38e16a523766d4eb6911e"
+    },
+    {
+      "file": "part-19000850-19000874.parquet",
+      "fromBlock": "19000850",
+      "toBlock": "19000874",
+      "lastBlockHash": "0x39b469c4517f4047c593a22e24fa5a8c4ebf432df836696afe223c3aec49463b",
+      "rows": 175,
+      "sha256": "fa756ec583217abb30f6be87daff67bb28ea61b171b40afb75dc22a872a6fe91"
+    },
+    {
+      "file": "part-19000875-19000899.parquet",
+      "fromBlock": "19000875",
+      "toBlock": "19000899",
+      "lastBlockHash": "0xa66809c63a37b2a569728627550fb3a31eb2e0a005057a8b5bd1549e389aba81",
+      "rows": 142,
+      "sha256": "0a0450b71edba9218734140a960e0a90d570cc0fe40e0f638ec5769f1cbb258a"
+    },
+    {
+      "file": "part-19000900-19000924.parquet",
+      "fromBlock": "19000900",
+      "toBlock": "19000924",
+      "lastBlockHash": "0xa9613072a193cd7da66030cdbab2e5dc9650f9aedca04bfb81b1e31270055355",
+      "rows": 197,
+      "sha256": "6d1294b448b1e3240069139a6c73091b3ef69f48fd6e6a388134ee5cc7793376"
+    },
+    {
+      "file": "part-19000925-19000949.parquet",
+      "fromBlock": "19000925",
+      "toBlock": "19000949",
+      "lastBlockHash": "0xfb426495297b27335eaa47873b0db1c512c192cdb4630c6ebb035ae67ed5fc8e",
+      "rows": 190,
+      "sha256": "3cb8ac4a48fd449dad30b996518a745a2074053c4f0d0fee1c72ec36d1222354"
+    },
+    {
+      "file": "part-19000950-19000974.parquet",
+      "fromBlock": "19000950",
+      "toBlock": "19000974",
+      "lastBlockHash": "0x442a44884e7e95095936c369d1d93127a9e356a7699a084e49690a9e1a2ce5a2",
+      "rows": 152,
+      "sha256": "d10cd6c5366bff05fbbbe44378b2953f80c99f9acd147832f562f989e708f6c0"
+    },
+    {
+      "file": "part-19000975-19000999.parquet",
+      "fromBlock": "19000975",
+      "toBlock": "19000999",
+      "lastBlockHash": "0x6b4d6ffea0f3fb93943870f6a045fbca6029baef61e87322826e963bd2cfcb4f",
+      "rows": 92,
+      "sha256": "ae3cbda09cdb964829e7906064a87215511c74d86acd7d46b6a0c80f2ad42698"
+    },
+    {
+      "file": "part-19001000-19001024.parquet",
+      "fromBlock": "19001000",
+      "toBlock": "19001024",
+      "lastBlockHash": "0x4bf98d8017b1fe7121e87da36bfe0633be9b7d3ec5462e1220001d00a6bacc5f",
+      "rows": 100,
+      "sha256": "a5a3eaf05fdd9274ea1ec2cb1d272212ec04f68922719502d81295612bbba9b0"
+    },
+    {
+      "file": "part-19001025-19001049.parquet",
+      "fromBlock": "19001025",
+      "toBlock": "19001049",
+      "lastBlockHash": "0x53e3987a3039598ecec0c357a65a23623ae8a52f67d1f3ae0a3fe0a2e77e2588",
+      "rows": 86,
+      "sha256": "f2069bd6990d870abe6f11b3a50d10c00abf4b29e0cbeb3312aaea11cd6af9a3"
+    },
+    {
+      "file": "part-19001050-19001074.parquet",
+      "fromBlock": "19001050",
+      "toBlock": "19001074",
+      "lastBlockHash": "0x401c7e1b02eea57770bee6dae29332d513055af89657d6f9657d3351978efde0",
+      "rows": 192,
+      "sha256": "3e0902510334080cb90c581217ce27117d676e3525ac2c9e33a914d18634f056"
+    },
+    {
+      "file": "part-19001075-19001099.parquet",
+      "fromBlock": "19001075",
+      "toBlock": "19001099",
+      "lastBlockHash": "0xccd1cd7d7309383f8a4b13ccf8bbc5d4c2db20947d48291c938aa02dfdbd7e27",
+      "rows": 210,
+      "sha256": "bb0563c5271e45fa9ea6bdb66d06e983a1f85e5f8ff5ea70d2e253a8c4aedeab"
+    },
+    {
+      "file": "part-19001100-19001124.parquet",
+      "fromBlock": "19001100",
+      "toBlock": "19001124",
+      "lastBlockHash": "0xc5b24b00ec1311591010155d099ca7881cb987a8b127b8399962da32adc962b1",
+      "rows": 134,
+      "sha256": "65d8bfea0a3744b38f56b62f352df2197ff42a682ad1c042e540b5f97902530b"
+    },
+    {
+      "file": "part-19001125-19001149.parquet",
+      "fromBlock": "19001125",
+      "toBlock": "19001149",
+      "lastBlockHash": "0xa65eeb6822e9c5a420dfb02537029802c013d68f979d80b4c7928236b9ea85df",
+      "rows": 208,
+      "sha256": "3f4dcc47d21bbc61a15f805f21be264eea01eb8e51372c1fedb1d2e0e5ae1568"
+    },
+    {
+      "file": "part-19001150-19001174.parquet",
+      "fromBlock": "19001150",
+      "toBlock": "19001174",
+      "lastBlockHash": "0x9b19f35ae641ee318ab6ddcb7a01cf3858ccfbd96b892491c10a079dba2c42a2",
+      "rows": 94,
+      "sha256": "899c3a7c8fcdd5995231707ac153b49c979db2c8dab305a0cae30e085130d561"
+    },
+    {
+      "file": "part-19001175-19001199.parquet",
+      "fromBlock": "19001175",
+      "toBlock": "19001199",
+      "lastBlockHash": "0x5f1959c927c5b932622d4094e120fdd58040e215301d48db843166fd8e1812df",
+      "rows": 112,
+      "sha256": "95e5414c788f020a48bde0276daeb0707aacab9518f26ae61e51385f719ac0e7"
+    },
+    {
+      "file": "part-19001200-19001224.parquet",
+      "fromBlock": "19001200",
+      "toBlock": "19001224",
+      "lastBlockHash": "0x949027132083025953b374ff312eccf8501cba92a4a7b5abf9546ead4a343f77",
+      "rows": 119,
+      "sha256": "bbda1ad27facece6d45a6edd6dc79053e84650d77965739c81dd21b26a1bf449"
+    },
+    {
+      "file": "part-19001225-19001249.parquet",
+      "fromBlock": "19001225",
+      "toBlock": "19001249",
+      "lastBlockHash": "0x8ea8cf1bf7b7a38269f83e6c782d7e7bbdfffad0f5e399db2ea8face07b1f40b",
+      "rows": 104,
+      "sha256": "2966376c3de08eb14fc08a5b89efdaa3a52e30ef3f2877e27e08b92b237b5efe"
+    },
+    {
+      "file": "part-19001250-19001274.parquet",
+      "fromBlock": "19001250",
+      "toBlock": "19001274",
+      "lastBlockHash": "0x8ebeb78c9bb040a36147d1cb6b80f2e159ff08aa743a87f41093009f28600be2",
+      "rows": 109,
+      "sha256": "6dcb193847498c71738601de37d4b6ca7908554197a49d1b97b864268b176267"
+    },
+    {
+      "file": "part-19001275-19001299.parquet",
+      "fromBlock": "19001275",
+      "toBlock": "19001299",
+      "lastBlockHash": "0x8d12216d90db56d8b8f82d49b6e4dc3a210e6743a9ca2c1141a29c45cc988bad",
+      "rows": 113,
+      "sha256": "88ce4c1ba40f736ec10ff9f10656d20706540753b24a9157464030a9df657951"
+    },
+    {
+      "file": "part-19001300-19001324.parquet",
+      "fromBlock": "19001300",
+      "toBlock": "19001324",
+      "lastBlockHash": "0x769a48f43adccabb93bf8bdb428ed99111cc96a7592f1df57469c4f785e3eaff",
+      "rows": 100,
+      "sha256": "353f5ac49d8a2ac3f4533da529f6096836c4049d716d4552253250508ed7e698"
+    },
+    {
+      "file": "part-19001325-19001349.parquet",
+      "fromBlock": "19001325",
+      "toBlock": "19001349",
+      "lastBlockHash": "0xe75dded34fe4c3891a87d31e3147072812796b1395e166d13a8f94fee77140c7",
+      "rows": 117,
+      "sha256": "80612f6fceb53ebfca0369b205da1bf726e1fbf7a9c2f45a79fa0e7df29a9a2e"
+    },
+    {
+      "file": "part-19001350-19001374.parquet",
+      "fromBlock": "19001350",
+      "toBlock": "19001374",
+      "lastBlockHash": "0x3116b6ebaf0304e9fd91ffa459e520644e47b188633c81271c2dd843ddfd4f59",
+      "rows": 105,
+      "sha256": "551f7c46f4b6df92e5ebedd55c4c28e72a1eb2fc4dbdaf01fd40f9b86d81ef05"
+    },
+    {
+      "file": "part-19001375-19001399.parquet",
+      "fromBlock": "19001375",
+      "toBlock": "19001399",
+      "lastBlockHash": "0x5045e5b85f1f0fee2b5f4847806f6032cbda49985fff78829d890bf96e6b919f",
+      "rows": 111,
+      "sha256": "35e304c79700df0fe52fa84667886690713f2be355a9d212f82bc6c47953d1d0"
+    },
+    {
+      "file": "part-19001400-19001424.parquet",
+      "fromBlock": "19001400",
+      "toBlock": "19001424",
+      "lastBlockHash": "0x2c54f4d0c27e29720fdfd7b94b17e17c3062a69579af5b4dfe04444529057eef",
+      "rows": 114,
+      "sha256": "d11e71e41f45e31bc651961f9aa68c526d9c70e2ef7d97a3a1405ee13e8e3d20"
+    },
+    {
+      "file": "part-19001425-19001439.parquet",
+      "fromBlock": "19001425",
+      "toBlock": "19001439",
+      "lastBlockHash": "0xd94710b4d44a71eedd05ab7f358abd9ab87797bd4c47fa9d21f388a28bdf1c0e",
+      "rows": 70,
+      "sha256": "4e9257ac9ee780a908407597c0f178f2cf0ab7d3cace6f81c7299749bc8bb1fb"
+    }
+  ],
+  "rowCount": 7195,
+  "nextBlock": "19001440",
+  "lastCommittedBlock": "19001439",
+  "lastCommittedBlockHash": "0xd94710b4d44a71eedd05ab7f358abd9ab87797bd4c47fa9d21f388a28bdf1c0e",
+  "complete": true,
+  "eventSelectionBias": null
+}

@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "fit_split": "train",
+  "training_rows": 7195,
+  "numeric": {
+    "calldataBytes": {
+      "transform": "identity",
+      "median": 68.0,
+      "mean": 62.51146629603892,
+      "std": 20.997010952538254
+    },
+    "calldataNonzeroBytes": {
+      "transform": "identity",
+      "median": 28.0,
+      "mean": 28.73453787352328,
+      "std": 13.289438231067162
+    },
+    "value": {
+      "transform": "log1p",
+      "median": 0.0,
+      "mean": 3.145167408590468,
+      "std": 10.75678806574674
+    },
+    "accessListStorageKeyCount": {
+      "transform": "log1p",
+      "median": 0.0,
+      "mean": 0.0,
+      "std": 1.0
+    },
+    "tokenAmount": {
+      "transform": "log1p",
+      "median": 19.946712425405163,
+      "mean": 20.407190652738667,
+      "std": 3.199631479798177
+    },
+    "isZeroAmount": {
+      "transform": "identity",
+      "median": 0.0,
+      "mean": 0.0006949270326615705,
+      "std": 0.026352307471658846
+    },
+    "isSelfTransfer": {
+      "transform": "identity",
+      "median": 0.0,
+      "mean": 0.0020847810979847115,
+      "std": 0.04561178340909504
+    },
+    "senderHasEnoughBalance": {
+      "transform": "identity",
+      "median": 1.0,
+      "mean": 0.9994440583738707,
+      "std": 0.02357185938863528
+    },
+    "amountToSenderBalanceRatio": {
+      "transform": "log1p_fraction",
+      "median": 0.5671944890180742,
+      "mean": 0.4640899279800366,
+      "std": 0.25826940472575416
+    },
+    "senderTokenBalanceBeforeBlock": {
+      "transform": "log1p",
+      "median": 22.763308849794694,
+      "mean": 23.480910141800603,
+      "std": 4.088778767544362
+    },
+    "recipientTokenBalanceBeforeBlock": {
+      "transform": "log1p",
+      "median": 15.698232283613594,
+      "mean": 14.256894893822963,
+      "std": 10.088438602876108
+    },
+    "recipientBalanceWasZero": {
+      "transform": "identity",
+      "median": 0.0,
+      "mean": 0.2661570535093815,
+      "std": 0.4419473683331373
+    },
+    "senderBalanceEqualsAmount": {
+      "transform": "identity",
+      "median": 0.0,
+      "mean": 0.24113968033356498,
+      "std": 0.42777486473867427
+    }
+  },
+  "categorical": {
+    "chainName": [
+      "ETHEREUM"
+    ],
+    "to": [
+      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+    ],
+    "functionSelector": [
+      "0x095ea7b3",
+      "0x23b872dd",
+      "0x2e1a7d4d",
+      "0xa9059cbb",
+      "0xd0e30db0"
+    ]
+  },
+  "unknown_category_index": 0,
+  "feature_names": [
+    "standardized:calldataBytes",
+    "standardized:calldataNonzeroBytes",
+    "standardized:value",
+    "standardized:accessListStorageKeyCount",
+    "standardized:tokenAmount",
+    "standardized:isZeroAmount",
+    "standardized:isSelfTransfer",
+    "standardized:senderHasEnoughBalance",
+    "standardized:amountToSenderBalanceRatio",
+    "standardized:senderTokenBalanceBeforeBlock",
+    "standardized:recipientTokenBalanceBeforeBlock",
+    "standardized:recipientBalanceWasZero",
+    "standardized:senderBalanceEqualsAmount",
+    "missing:tokenAmount",
+    "missing:isZeroAmount",
+    "missing:isSelfTransfer",
+    "missing:senderHasEnoughBalance",
+    "missing:amountToSenderBalanceRatio",
+    "missing:senderTokenBalanceBeforeBlock",
+    "missing:recipientTokenBalanceBeforeBlock",
+    "missing:recipientBalanceWasZero",
+    "missing:senderBalanceEqualsAmount",
+    "chainName=<UNKNOWN>",
+    "chainName=ETHEREUM",
+    "to=<UNKNOWN>",
+    "to=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "to=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "functionSelector=<UNKNOWN>",
+    "functionSelector=0x095ea7b3",
+    "functionSelector=0x23b872dd",
+    "functionSelector=0x2e1a7d4d",
+    "functionSelector=0xa9059cbb",
+    "functionSelector=0xd0e30db0"
+  ],
+  "baseline_feature_names": [
+    "standardized:calldataBytes",
+    "standardized:calldataNonzeroBytes",
+    "standardized:value",
+    "standardized:accessListStorageKeyCount",
+    "chainName=<UNKNOWN>",
+    "chainName=ETHEREUM",
+    "to=<UNKNOWN>",
+    "to=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "to=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "functionSelector=<UNKNOWN>",
+    "functionSelector=0x095ea7b3",
+    "functionSelector=0x23b872dd",
+    "functionSelector=0x2e1a7d4d",
+    "functionSelector=0xa9059cbb",
+    "functionSelector=0xd0e30db0"
+  ],
+  "baseline_indices": [
+    0,
+    1,
+    2,
+    3,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32
+  ],
+  "target": "gasUsed",
+  "target_transform": "none",
+  "state_reference": "end_of_previous_block",
+  "missing_policy": "training_median_after_transform_plus_missing_indicator"
+}

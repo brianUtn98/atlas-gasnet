@@ -5,3 +5,5 @@
 *.md text eol=lf
 .editorconfig text eol=lf
 .prettierignore text eol=lf
+*.py text eol=lf
+data/poc/v1/*.pt binary

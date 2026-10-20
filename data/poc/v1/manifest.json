@@ -1,0 +1,184 @@
+{
+  "dataset_id": "ethereum-poc-v1",
+  "version": 1,
+  "created_utc": "2026-10-20T03:49:36.171241+00:00",
+  "source_schema_version": "3",
+  "torch_version": "2.14.1+cpu",
+  "total_distinct_rows": 15937,
+  "preprocessing_fit_split": "train",
+  "target": "gasUsed",
+  "splits": {
+    "train": {
+      "rows": 7195,
+      "fromBlock": "19000000",
+      "toBlock": "19001439",
+      "selection_fingerprint": "c90fec9400ba36bc0e3498063362497045f9bb0b5725189b439181c157bd4c27",
+      "X_shape": [
+        7195,
+        33
+      ],
+      "X_baseline_shape": [
+        7195,
+        15
+      ],
+      "enrichment_status": {
+        "complete": 3969,
+        "not_applicable": 3218,
+        "failed": 8
+      },
+      "enrichment_failure_reasons": {
+        "invalid_calldata": 8
+      },
+      "contract_function_counts": {
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0xa9059cbb": 3858,
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0x095ea7b3": 1102,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0x095ea7b3": 496,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0xd0e30db0": 575,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0x2e1a7d4d": 589,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0xa9059cbb": 119,
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0x23b872dd": 456
+      }
+    },
+    "validation": {
+      "rows": 1373,
+      "fromBlock": "19001440",
+      "toBlock": "19001799",
+      "selection_fingerprint": "44f7430de803a3db2af4acf410e1db218dde5de615adfd6f77cbdb38c2b646b8",
+      "X_shape": [
+        1373,
+        33
+      ],
+      "X_baseline_shape": [
+        1373,
+        15
+      ],
+      "enrichment_status": {
+        "not_applicable": 569,
+        "complete": 803,
+        "failed": 1
+      },
+      "enrichment_failure_reasons": {
+        "invalid_calldata": 1
+      },
+      "contract_function_counts": {
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0x2e1a7d4d": 124,
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0xa9059cbb": 783,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0x095ea7b3": 93,
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0x23b872dd": 30,
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0x095ea7b3": 192,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0xd0e30db0": 129,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0xa9059cbb": 21,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0x23b872dd": 1
+      }
+    },
+    "test": {
+      "rows": 2466,
+      "fromBlock": "19001800",
+      "toBlock": "19002399",
+      "selection_fingerprint": "4e08c31d45859b5c405a1e6800ba754c8c60091b3c9ada18d7b0ecad1453cef3",
+      "X_shape": [
+        2466,
+        33
+      ],
+      "X_baseline_shape": [
+        2466,
+        15
+      ],
+      "enrichment_status": {
+        "complete": 1557,
+        "not_applicable": 909
+      },
+      "enrichment_failure_reasons": {},
+      "contract_function_counts": {
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0xa9059cbb": 1525,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0x2e1a7d4d": 212,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0x095ea7b3": 175,
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0x095ea7b3": 293,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0xd0e30db0": 193,
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2:0xa9059cbb": 32,
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0x23b872dd": 36
+      }
+    },
+    "unseen-contract": {
+      "rows": 4903,
+      "fromBlock": "19001800",
+      "toBlock": "19002399",
+      "selection_fingerprint": "21d0e55ee6d9c3f5110de6b76ffa2dea784f026a1a98d3118f7b58e80a018b35",
+      "X_shape": [
+        4903,
+        33
+      ],
+      "X_baseline_shape": [
+        4903,
+        15
+      ],
+      "enrichment_status": {
+        "complete": 4280,
+        "not_applicable": 616,
+        "failed": 7
+      },
+      "enrichment_failure_reasons": {
+        "invalid_calldata": 7
+      },
+      "contract_function_counts": {
+        "0xdac17f958d2ee523a2206206994597c13d831ec7:0xa9059cbb": 4287,
+        "0xdac17f958d2ee523a2206206994597c13d831ec7:0x095ea7b3": 483,
+        "0xdac17f958d2ee523a2206206994597c13d831ec7:0x23b872dd": 133
+      }
+    }
+  },
+  "artifacts": {
+    "preprocessing.json": {
+      "sha256": "8f1520a0904010a4c04e656374b2c5181c5fcb73c243d46660d6edffce6529ff",
+      "bytes": 4651
+    },
+    "train.json": {
+      "sha256": "c34567edfed943da2eb249d20a35e8bd6073a2c9306da1815092ca7e5f92b442",
+      "bytes": 10893517
+    },
+    "train.pt": {
+      "sha256": "2d4a1ab69b8f135cf52cba84e65f80decf5d26be13ec5f484d2e5fbf41b0fc72",
+      "bytes": 2148029
+    },
+    "provenance/train.manifest.json": {
+      "sha256": "5948b6008ecf20f3fbd1be8e6d3a7b8b93486704097a3a402b126626ae7a935d",
+      "bytes": 26960
+    },
+    "validation.json": {
+      "sha256": "eaabbdbf87373f944ff5d0d3afbea4ed63202c020578918675f9ab760c15ba95",
+      "bytes": 2073550
+    },
+    "validation.pt": {
+      "sha256": "1c804df7c7dd85a0923cb04ba94f7194bee6826d4f2f810a85293660d9b04a02",
+      "bytes": 413049
+    },
+    "provenance/validation.manifest.json": {
+      "sha256": "c47bfbc5088491b8b8f16a8e5cb1b10db26ffa8c8bf4c07b86cfab2c9e5c9af4",
+      "bytes": 11650
+    },
+    "test.json": {
+      "sha256": "28ed7ccbd435bd3cb187f6f12e89daf1f4b6fd04d8fcef25dcc7275f079801c7",
+      "bytes": 3726525
+    },
+    "test.pt": {
+      "sha256": "570bf49475f2d47f9c9c0aa934f3b47b69a7a6096c1fa381e05d906ea6432bc6",
+      "bytes": 738801
+    },
+    "provenance/test.manifest.json": {
+      "sha256": "56eb4d798514e9057629d1c7e22d21940494ef6bf32a758ad9cd89c292bbbee4",
+      "bytes": 14853
+    },
+    "unseen-contract.json": {
+      "sha256": "21d10bc57f635ababf3af88b7e8fcf9086130553111df5f65dda824bd90f8903",
+      "bytes": 7498218
+    },
+    "unseen-contract.pt": {
+      "sha256": "12422fec7712c07e5a2cc13456e9095e2e5eefc1b1f48b061f2102a1797bf93c",
+      "bytes": 1465077
+    },
+    "provenance/unseen-contract.manifest.json": {
+      "sha256": "190ba09f013463d8158879cafb443da047a86c2fdf8fba1f1971462543ed1c4c",
+      "bytes": 14608
+    }
+  }
+}
