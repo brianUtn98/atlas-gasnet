@@ -1,11 +1,14 @@
 network: ETHEREUM
+# Optional historical state reads; requires an RPC serving the selected history.
+erc20BalanceEnrichment: true
 fromBlock: '19000000'
 toBlock: '19000002'
 contracts:
   - address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+    erc20: true
     functions:
       - transfer(address,uint256)
-outputDir: data/extractions/usdc-example
+outputDir: data/extractions/usdc-enriched-v3
 outputFormats:
   - parquet
   - pdf

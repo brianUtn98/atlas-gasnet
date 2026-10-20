@@ -1,4 +1,5 @@
 import type { Selection } from './config.js';
+import { statePolicy } from './enrichment.js';
 import { SelectionIdentity } from './identity.js';
 import { OutputManager } from './output/manager.js';
 import { physicalSchema } from './parquet.js';
@@ -15,6 +16,7 @@ export class ManifestBuilder {
   build(checkpoint: Checkpoint): ExtractionManifest {
     const last = checkpoint.parts.at(-1);
     return {
+      stateEnrichment: { enabled: this.selection.erc20BalanceEnrichment, ...statePolicy },
       schemaVersion,
       selection: this.identity.normalized,
       fingerprint: checkpoint.fingerprint,

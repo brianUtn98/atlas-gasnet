@@ -3,6 +3,7 @@ import type { physicalSchema } from './parquet.js';
 import type { audit, features, initialPredictors, targets } from './rows.js';
 
 export interface NormalizedSelection {
+  erc20BalanceEnrichment: boolean;
   version: number;
   schemaVersion: string;
   network: NetworkName;
@@ -37,6 +38,14 @@ export interface OutputDescription {
 }
 
 export interface ExtractionManifest {
+  stateEnrichment: {
+    enabled: boolean;
+    failurePolicy: string;
+    reference: string;
+    ratioEncoding: string;
+    ratioZeroDenominator: string;
+    limitation: string;
+  };
   schemaVersion: string;
   selection: NormalizedSelection;
   fingerprint: string;

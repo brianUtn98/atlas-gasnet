@@ -1,4 +1,5 @@
 import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from 'pdf-lib';
+import { statePolicy } from '../src/enrichment.js';
 import { SelectionIdentity, type ExtractionManifest } from '../src/persistence.js';
 import {
   audit,
@@ -13,6 +14,7 @@ import { selection, hash } from './fixtures.js';
 export function reportManifest(rows: Row[], complete = true): ExtractionManifest {
   const s = selection();
   return {
+    stateEnrichment: { enabled: false, ...statePolicy },
     schemaVersion,
     selection: new SelectionIdentity(s).normalized,
     fingerprint: new SelectionIdentity(s).fingerprint,

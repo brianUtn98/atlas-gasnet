@@ -18,6 +18,14 @@ function payload(method: string, params: unknown[]) {
     th = hash(h * 100);
   if (method === 'eth_chainId') return '0x1';
   if (method === 'eth_blockNumber') return '0x64';
+  if (method === 'eth_call') {
+    expect(['0x8', '0x9']).toContain(params[1]);
+    expect(params[0]).toEqual({
+      to: address,
+      data: `0x70a08231${other.slice(2).padStart(64, '0')}`,
+    });
+    return '0x' + '20000000000001'.padStart(64, '0');
+  }
   if (method === 'eth_getBlockByNumber')
     return {
       number: '0x' + h.toString(16),
@@ -36,7 +44,7 @@ function payload(method: string, params: unknown[]) {
           value: '0x20000000000001',
           gas: '0x186a0',
           gasPrice: '0xa',
-          input: '0xa9059cbb00ff',
+          input: `0xa9059cbb${other.slice(2).padStart(64, '0')}${'20000000000001'.padStart(64, '0')}`,
         },
       ],
     };
@@ -80,7 +88,8 @@ it('executes compiled help, custom RPC extraction and resume against local HTTP 
         network: 'ETHEREUM',
         fromBlock: '9',
         toBlock: '10',
-        contracts: [{ address }],
+        contracts: [{ address, erc20: true }],
+        erc20BalanceEnrichment: true,
         outputDir: join(dir, 'data'),
         batchSize: 1,
         retries: 0,
@@ -122,6 +131,18 @@ it('executes compiled help, custom RPC extraction and resume against local HTTP 
       nonce: '9007199254740993',
       value: '9007199254740993',
       receiptStatus: 'reverted',
+      stateEnrichmentStatus: 'complete',
+      stateBlockNumber: '8',
+      senderTokenBalanceBeforeBlock: '9007199254740993',
+      recipientTokenBalanceBeforeBlock: '9007199254740993',
+      senderBalanceEqualsAmount: 1,
+      recipientBalanceWasZero: 0,
+      schemaVersion: '3',
+      tokenAmount: '9007199254740993',
+      isZeroAmount: 0,
+      isSelfTransfer: 1,
+      senderHasEnoughBalance: 1,
+      amountToSenderBalanceRatio: '1/1',
     });
     await writeFile(
       join(dir, 'json-only.yaml'),

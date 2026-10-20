@@ -27,6 +27,19 @@ The first neural model will use two hidden layers with 64 and 32 neurons, ReLU a
 - Target: transaction `gasUsed`.
 - Candidate inputs: information known before execution, such as transaction metadata, calldata-derived fields, sender/recipient context, and block context available at submission time.
 - Exclusions: receipt fields, execution outcomes, or any feature only known after execution.
+- Optional state candidates: exact ERC-20 sender/recipient balances at the end of the
+  previous block, recipient-balance-zero and sender-balance-equals-amount indicators.
+  Transfer enrichment also exports the exact calldata token amount, zero-amount and
+  self-transfer flags, a reference-balance sufficiency flag and an exact rational
+  amount-to-sender-balance ratio. Zero denominator gives null and is distinguishable
+  from missing history through reference balances/status. These fields require no
+  additional RPC reads; valid calldata fields survive unavailable historical state.
+  These approximate pre-transaction state; earlier same-block activity can change it.
+  Balance equality is not evidence that a transfer emptied the sender. Missing state
+  remains null with explicit audit status; no label correction or causal attribution
+  of gas differences is applied. At prediction time, record a known reference block
+  available before execution and evaluate the mismatch with historical inclusion-minus-one.
+  Post-execution balances would be audit data, excluded from predictor inputs.
 - Planned chronological split: 60% train, 15% validation, 25% test.
 - Planned final metrics: MAE, RMSE, and R², with comparisons by contract and function selector where sample size permits.
 

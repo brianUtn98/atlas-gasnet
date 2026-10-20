@@ -2,7 +2,7 @@ import { parquetReadObjects } from 'hyparquet';
 import type { Selection } from './config.js';
 import { SelectionIdentity } from './identity.js';
 import { orderedRows, ParquetCodec } from './parquet.js';
-import { rowKey, type Row } from './rows.js';
+import { rowKey, schemaVersion, type Row } from './rows.js';
 import { decodeJson, digest, encodeJson } from './serialization.js';
 import { batchFiles, type BatchRange, type Checkpoint, type Part } from './state.js';
 import type { Store } from './store.js';
@@ -70,6 +70,10 @@ export class CheckpointRepository {
     if (!Array.isArray(rows) || rows.length !== part.rows) {
       throw new Error('Committed row count mismatch.');
     }
+    if (rows.some((row) => row.schemaVersion !== schemaVersion)) {
+      throw new Error('Incompatible committed row schema.');
+    }
+    this.codec.columns(rows);
     return rows;
   }
 
@@ -95,6 +99,7 @@ export class CheckpointRepository {
   ): Promise<Checkpoint> {
     const useParquet = this.selection.outputFormats.includes('parquet');
     const sorted = orderedRows(rows);
+    this.codec.columns(sorted);
     const encoded = useParquet
       ? this.codec.encode(sorted)
       : { rows: sorted, bytes: encodeJson(sorted) };

@@ -10,6 +10,7 @@ const block = (height = 99n): RpcBlock => ({
 function client(head = 100n, chain = 1): ReadClient {
   return {
     getChainId: vi.fn(async () => chain),
+    getTokenBalance: vi.fn(async () => 0n),
     getBlockNumber: vi.fn(async () => head),
     getBlock: vi.fn(async (h) => block(h)),
     getReceipt: vi.fn(),

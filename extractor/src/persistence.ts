@@ -1,4 +1,5 @@
 import { CheckpointRepository } from './checkpoint.js';
+import { Erc20BalanceEnricher } from './enrichment.js';
 import type { Selection } from './config.js';
 import { TransactionScanner } from './extract.js';
 import { ManifestBuilder } from './manifest.js';
@@ -43,7 +44,11 @@ export class ExtractionRunner {
       while (BigInt(checkpoint.nextBlock) <= this.selection.toBlock) {
         const range = this.repository.nextRange(checkpoint);
         const batch = await this.scanner.scan(range.from, range.to);
-        const rows = batch.matches.map((match) => this.normalizer.normalize(match));
+        const rows: Row[] = [];
+        const enricher = new Erc20BalanceEnricher(this.selection, this.rpc);
+        for (const match of batch.matches) {
+          rows.push({ ...this.normalizer.normalize(match), ...(await enricher.enrich(match)) });
+        }
         for (const row of rows) {
           if (seen.has(rowKey(row))) {
             throw new Error('Transaction identity repeated across committed batches.');

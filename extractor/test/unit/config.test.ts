@@ -119,7 +119,12 @@ describe('configuration', () => {
           },
         ],
       }).contracts[0],
-    ).toEqual({ address, functions: ['0xa9059cbb'], eventTopics: ['0x' + 'ab'.repeat(32)] });
+    ).toEqual({
+      address,
+      erc20: false,
+      functions: ['0xa9059cbb'],
+      eventTopics: ['0x' + 'ab'.repeat(32)],
+    });
   });
   it.each(['x: [', 'x: 1\nx: 2', 'x: *missing'])('rejects malformed YAML', (yaml) =>
     expect(() => parseYaml(yaml)).toThrow(),

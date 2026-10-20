@@ -36,6 +36,7 @@ export interface RpcReceipt {
   logs: { address: string; topics: string[] }[];
 }
 export interface ReadClient {
+  getTokenBalance(contract: string, owner: string, height: bigint): Promise<bigint>;
   getChainId(): Promise<number>;
   getBlockNumber(): Promise<bigint>;
   getBlock(height: bigint): Promise<RpcBlock>;
@@ -49,6 +50,7 @@ export interface Observation {
   cooldownUntil: number;
 }
 export interface ReadonlyRPC {
+  getTokenBalance(contract: string, owner: string, height: bigint): Promise<bigint>;
   getBlock(height: bigint, validate?: (block: RpcBlock) => void): Promise<RpcBlock>;
   getReceipt(
     hash: string,
@@ -95,6 +97,17 @@ export class RpcClientFactory {
         transport: http(url, { retryCount: 0, timeout }),
       });
       return {
+        getTokenBalance: async (contract, owner, height) => {
+          const result = await client.request({
+            method: 'eth_call',
+            params: [
+              { to: contract as Hex, data: `0x70a08231${owner.slice(2).padStart(64, '0')}` },
+              numberToHex(height),
+            ],
+          });
+          assertData(typeof result === 'string' && /^0x[0-9a-fA-F]{64}$/.test(result));
+          return BigInt(result);
+        },
         getChainId: () => client.getChainId(),
         getBlockNumber: () => client.getBlockNumber({ cacheTime: 0 }),
         getBlock: async (height) => {
@@ -273,6 +286,7 @@ export class RPCManager implements ReadonlyRPC {
     height: bigint,
     operation: (client: ReadClient) => Promise<T>,
     validate: (value: T) => void,
+    preserveProbeHealth = false,
   ): Promise<T> {
     const rejected = new Set<number>();
     for (let round = 0; round <= this.retries; round++) {
@@ -303,13 +317,13 @@ export class RPCManager implements ReadonlyRPC {
             o.cooldownUntil = 0;
             return value;
           } catch (error) {
-            o.healthy = false;
+            if (!preserveProbeHealth) o.healthy = false;
             if (error instanceof InvalidData) break;
             const delay = Math.max(
               Math.min(250 * 2 ** attempt, 30_000),
               retryAfter(error, this.now()),
             );
-            o.cooldownUntil = this.now() + delay;
+            if (!preserveProbeHealth) o.cooldownUntil = this.now() + delay;
             if (attempt === this.retries) break;
             await this.sleep(delay);
           }
@@ -319,6 +333,25 @@ export class RPCManager implements ReadonlyRPC {
       if (round < this.retries) await this.sleep(Math.min(250 * 2 ** round, 30_000));
     }
     throw new Error(`RPC reads exhausted for ${this.network}; no progress committed.`);
+  }
+  async getTokenBalance(contract: string, owner: string, height: bigint): Promise<bigint> {
+    assertData(
+      /^0x[0-9a-fA-F]{40}$/.test(contract) &&
+        /^0x[0-9a-fA-F]{40}$/.test(owner) &&
+        typeof height === 'bigint' &&
+        height >= 0n,
+    );
+    // Historical-state availability is operation-specific: lacking archive state
+    // must not prevent the next batch from reading blocks/receipts. Recovery
+    // within this read still rejects endpoints and honors bounded backoff.
+    return this.read(
+      height,
+      (c) => c.getTokenBalance(contract, owner, height),
+      (value) => {
+        assertData(typeof value === 'bigint' && value >= 0n && value < 1n << 256n);
+      },
+      true,
+    );
   }
   getBlock(height: bigint, validate: (block: RpcBlock) => void = () => {}): Promise<RpcBlock> {
     return this.read(

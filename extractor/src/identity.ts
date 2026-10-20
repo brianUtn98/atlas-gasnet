@@ -12,12 +12,14 @@ export class SelectionIdentity {
     this.normalized = {
       version: 1,
       schemaVersion,
+      erc20BalanceEnrichment: selection.erc20BalanceEnrichment,
       network: selection.network,
       fromBlock: String(selection.fromBlock),
       toBlock: String(selection.toBlock),
       contracts: selection.contracts
         .map((contract) => ({
           address: contract.address.toLowerCase(),
+          erc20: contract.erc20 ?? false,
           ...(contract.functions ? { functions: [...new Set(contract.functions)].sort() } : {}),
           ...(contract.eventTopics
             ? { eventTopics: [...new Set(contract.eventTopics)].sort() }

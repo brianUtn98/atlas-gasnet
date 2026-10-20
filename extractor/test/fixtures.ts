@@ -55,6 +55,7 @@ export function receipt(transaction = tx(), patch: Partial<RpcReceipt> = {}): Rp
 export function fixtureClient(): ReadClient {
   return {
     getChainId: vi.fn(async () => 1),
+    getTokenBalance: vi.fn(async () => 0n),
     getBlockNumber: vi.fn(async () => 100n),
     getBlock: vi.fn(async (h) => block(h)),
     getReceipt: vi.fn(async (h) => {

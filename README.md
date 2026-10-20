@@ -51,3 +51,14 @@ checkpoint persistence and execution; see the architecture notes in docs/extract
 Parquet contains dataset batches, `transactions.json` contains all normalized rows, and `report.pdf` summarizes gas statistics, selection, grouped results and a transaction sample. Choose any nonempty subset. Rerun the same command to resume and generate the selected formats. See [docs/extractor.md](docs/extractor.md) for configuration, public endpoint verification limits, data semantics, tests and checkpoint behavior. No training runs automatically.
 
 See [docs/PROJECT.md](docs/PROJECT.md) for scope, methodology, and constraints.
+
+Optional ERC-20 balance enrichment adds exact sender/recipient balances at the end
+of the block before inclusion, exact token amounts, transfer/state indicators and
+an exact rational amount-to-balance ratio. Enable
+`erc20BalanceEnrichment: true` and `erc20: true` for each selected token contract;
+both default to false when omitted. The repository configuration explicitly enables
+both for the USDC sample. RPCs must serve historical state. Missing state is explicit,
+never a fictitious zero, and `gasUsed` remains the receipt observation. New runs use
+schema 3 and require a new output directory for old checkpoints. See the
+[state feature documentation](docs/extractor.md#optional-erc-20-historical-balances)
+for configuration, failure semantics and prediction-time limitations.

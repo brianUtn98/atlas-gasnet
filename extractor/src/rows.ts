@@ -1,8 +1,9 @@
 import { networks, type NetworkName } from './config.js';
 import { quantity, transactionType, type Match } from './extract.js';
 import { assertData } from './rpc.js';
+import { emptyBalanceState } from './enrichment.js';
 
-export const schemaVersion = '1';
+export const schemaVersion = '3';
 export const initialPredictors = [
   'chainName',
   'to',
@@ -13,6 +14,15 @@ export const initialPredictors = [
   'accessListStorageKeyCount',
 ] as const;
 export const features = [
+  'tokenAmount',
+  'isZeroAmount',
+  'isSelfTransfer',
+  'senderHasEnoughBalance',
+  'amountToSenderBalanceRatio',
+  'senderTokenBalanceBeforeBlock',
+  'recipientTokenBalanceBeforeBlock',
+  'recipientBalanceWasZero',
+  'senderBalanceEqualsAmount',
   'from',
   'to',
   'type',
@@ -34,6 +44,9 @@ export const features = [
 ] as const;
 export const targets = ['gasUsed'] as const;
 export const audit = [
+  'stateBlockNumber',
+  'stateEnrichmentStatus',
+  'stateEnrichmentReason',
   'chainId',
   'transactionHash',
   'blockHash',
@@ -44,6 +57,11 @@ export const audit = [
   'schemaVersion',
 ] as const;
 export const intColumns = [
+  'isZeroAmount',
+  'isSelfTransfer',
+  'senderHasEnoughBalance',
+  'recipientBalanceWasZero',
+  'senderBalanceEqualsAmount',
   'type',
   'calldataBytes',
   'calldataZeroBytes',
@@ -52,6 +70,17 @@ export const intColumns = [
   'accessListStorageKeyCount',
 ] as const;
 export const nullableColumns = [
+  'tokenAmount',
+  'isZeroAmount',
+  'isSelfTransfer',
+  'senderHasEnoughBalance',
+  'amountToSenderBalanceRatio',
+  'stateBlockNumber',
+  'stateEnrichmentReason',
+  'senderTokenBalanceBeforeBlock',
+  'recipientTokenBalanceBeforeBlock',
+  'recipientBalanceWasZero',
+  'senderBalanceEqualsAmount',
   'gasPrice',
   'maxFeePerGas',
   'maxPriorityFeePerGas',
@@ -77,6 +106,7 @@ export class RowNormalizer {
     }));
     const dynamic = type >= 2;
     return {
+      ...emptyBalanceState(),
       from: tx.from.toLowerCase(),
       to: tx.to.toLowerCase(),
       type,

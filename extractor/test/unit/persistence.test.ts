@@ -111,7 +111,7 @@ describe('durable run state', () => {
     await new ExtractionRunner(selection(), rpc(), store).run();
     const original = store.files.get('checkpoint.json')!;
     const cp = store.json('checkpoint.json');
-    cp.selection.schemaVersion = '2';
+    cp.selection.schemaVersion = '1';
     await store.commit('checkpoint.json', new TextEncoder().encode(JSON.stringify(cp)));
     await expect(new ExtractionRunner(selection(), rpc(), store).run()).rejects.toThrow(
       'Incompatible',

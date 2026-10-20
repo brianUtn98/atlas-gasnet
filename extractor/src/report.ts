@@ -196,6 +196,21 @@ export class PdfReportRenderer implements ReportRenderer {
     const mono = await doc.embedFont(StandardFonts.Courier);
     const layout = new ReportLayout(doc, regular, bold, mono);
     this.renderOverview(layout, manifest);
+    layout.text(
+      `ERC-20 state enrichment: ${manifest.stateEnrichment.enabled ? 'enabled' : 'disabled'}; policy: ${manifest.stateEnrichment.failurePolicy}.`,
+    );
+    layout.text(
+      ['complete', 'failed', 'not_applicable']
+        .map(
+          (status) =>
+            `${status}: ${sorted.filter((row) => row.stateEnrichmentStatus === status).length}`,
+        )
+        .join(' | '),
+    );
+    layout.text(manifest.stateEnrichment.limitation);
+    layout.text(
+      `Amount/balance ratio encoding: ${manifest.stateEnrichment.ratioEncoding}; zero denominator: ${manifest.stateEnrichment.ratioZeroDenominator}.`,
+    );
     this.renderStatistics(layout, summary);
     this.renderSelection(layout, manifest);
     this.renderGroups(layout, summary);
@@ -274,6 +289,12 @@ export class PdfReportRenderer implements ReportRenderer {
       'gasUsed is the observed prediction target from the receipt. gasLimit is the submitted execution cap, not gas consumed. value is native currency in base units, not an ERC-20 token amount.',
     );
     layout.text(`Initial candidate predictors: ${manifest.initialPredictors.join(', ')}.`);
+    layout.text(
+      'BeforeBlock balances refer to the end of the previous block, recorded in stateBlockNumber. Equality with amount does not guarantee that a transfer emptied the sender. Missing balances and indicators are null, never assumed zero. gasUsed remains receipt-observed.',
+    );
+    layout.text(
+      'tokenAmount, isZeroAmount and isSelfTransfer come from submitted calldata and persist when state reads fail. senderHasEnoughBalance compares the reference balance to amount; it does not guarantee execution success. A zero sender balance gives a null ratio, including 0/0.',
+    );
     layout.text(
       'Encode network, recipient and function selector categorically. Calldata counts describe submitted bytes; access-list counts describe declared keys, not actual storage accesses.',
     );

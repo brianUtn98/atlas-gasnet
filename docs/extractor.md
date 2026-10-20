@@ -36,7 +36,7 @@ probeTimeoutMs=5000. Batch size and timeouts must be positive bounded integers.
 Choose exports in the extraction YAML, for example:
 
 ```yaml
-outputDir: data/extractions/usdc-example
+outputDir: data/extractions/usdc-enriched-v3
 outputFormats: [parquet, pdf, json]
 ```
 
@@ -45,7 +45,7 @@ outputFormats also defaults to all three. Any nonempty subset is accepted, such
 as `[json]` or `[parquet, pdf]`. Unknown, uppercase, duplicate, empty or non-list
 values fail validation. There are no separate CLI format flags.
 
-- `parquet`: deterministic `part-FROM-TO.parquet` batches with the version-1 schema.
+- `parquet`: deterministic `part-FROM-TO.parquet` batches with the version-3 schema.
 - `json`: `transactions.json`, an array of every committed row, in numeric block
   and transaction-index order, not just the PDF sample. Exact quantities remain
   decimal strings, counts/type remain JSON numbers, null fee/selector fields stay
@@ -99,7 +99,8 @@ at startup and request-driven refreshes every 30 seconds (configurable); at most
 four probes run together, each with a 5 second configurable timeout. Overlapping
 refreshes coalesce. Unexpired healthy observations rank by descending head, then
 configuration order. Nodes below the requested height are excluded. Failed nodes
-can recover on later refreshes. The interface exposes block and receipt reads only.
+can recover on later refreshes. The interface exposes block, receipt and historical
+ERC-20 balance reads only.
 Reads retry transient errors up to retries times with 250 ms exponential backoff,
 capped at 30 seconds; structured Retry-After seconds/dates are honored up to that
 cap. Exhaustion or invalid historical data falls back in head order. An endpoint
@@ -120,12 +121,142 @@ calls are retained. Topic filtering selects on execution outcomes: reverted call
 without persisted logs are excluded. Record this selection bias when training; event
 presence and receipt status are never pre-execution predictors.
 
-## Version 1 data dictionary
+## Optional ERC-20 historical balances
+
+Enable both options in a selection YAML to request historical state. Both default
+to false and must be actual YAML booleans. The repository selection marks USDC as
+ERC-20 and explicitly enables global enrichment. Omitted options still default to
+false; no state calls are made while disabled.
+
+```yaml
+erc20BalanceEnrichment: true
+contracts:
+  - address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+    erc20: true
+    functions: ['transfer(address,uint256)']
+outputDir: data/extractions/usdc-state-study
+```
+
+Add network, fromBlock, toBlock and other output settings as in the repository
+selection. An ERC-20 designation is an explicit user assertion, not automatic token
+detection. Only selector `0xa9059cbb` with exactly two canonical ABI words is enriched.
+The first word contains the token recipient and the second the uint256 amount in
+token base units. `to` remains the token contract; `value` remains native currency.
+Other functions and contracts are not enriched. Extra calldata bytes, missing words
+and nonzero address padding fail enrichment rather than being guessed. Decoded
+recipient is used internally and recoverable from `input`; `tokenAmount` exports
+the exact decoded amount as a decimal string. `isZeroAmount` and `isSelfTransfer`
+describe submitted calldata. They stay available when decoding succeeds even if
+historical state fails or inclusion is block zero. All enrichment fields remain
+null for disabled/non-applicable calls, except audit status/reason. Malformed
+transfers have null calldata-derived fields too. `approve` and `transferFrom` remain
+not applicable; there are no allowance columns or extra queries.
+
+For inclusion block N > 0, the existing RPCManager sends `balanceOf(from)` and
+`balanceOf(decodedRecipient)` as `eth_call` at the numeric tag N - 1. It never uses
+`latest` or the end of block N. A self transfer reuses the same account read. Raw
+results must be exactly 32 bytes; empty `0x`, malformed responses, errors and missing
+archive state never become zero. Existing chain validation, timeouts, retries,
+Retry-After handling and fallback apply. A failed historical-state read does not
+establish that the endpoint cannot serve ordinary blocks or receipts.
+
+The fixed failure policy is **record null and continue**. Every row has one status:
+
+| stateEnrichmentStatus | stateEnrichmentReason                             | Meaning                                                                                                                              |
+| --------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| not_applicable        | disabled, contract_not_enabled, or other_function | No state request; all state candidates and reference height null                                                                     |
+| failed                | invalid_calldata                                  | Enabled transfer cannot be decoded; no state request or reference height                                                             |
+| failed                | invalid_state_block                               | Inclusion block zero has no previous block; no state request or reference height                                                     |
+| failed                | historical_state_unavailable                      | All recovery exhausted or state response invalid; attempted N - 1 and decoded calldata retained; all balance-derived candidates null |
+| complete              | null                                              | Both balances available; ratio null only for zero sender balance                                                                     |
+
+No partial balance is retained after either read fails. Codes never include external
+error messages, URLs or credentials. General extraction failures (missing blocks or
+receipts) still abort the unfinished batch. `manifest.complete` describes block
+coverage, **not** enrichment success. PDF coverage counts show all three statuses;
+JSON and Parquet retain status per row. Resuming preserves committed failed rows;
+use a fresh output directory to attempt their enrichment again. Missingness must
+be handled explicitly in future preprocessing, never filled with fictitious zeros.
+
+`BeforeBlock` means **state at the end of the block before inclusion**, an
+approximation to state immediately before the transaction. Earlier transactions
+in the inclusion block may change either balance. `senderBalanceEqualsAmount`
+compares the reference balance with the calldata amount; it does not guarantee the
+transfer succeeded or emptied the sender, including for self transfers and zero
+amounts. Indicators never use gasUsed, logs, receiptStatus or later state. Observed
+differences of 17,100 or 4,800 gas do not automatically establish any specific cause.
+No formula replaces or adjusts receipt-observed `gasUsed`.
+
+`senderHasEnoughBalance` compares the sender's reference balance with `tokenAmount`
+using exact integers. It is 1 when balance >= amount, including amount=balance=0;
+it does not guarantee execution success. The existing balance-zero/equality flags
+remain available alongside it. No new state reads are needed for these features.
+
+`amountToSenderBalanceRatio` uses a **reduced exact rational string** `p/q`, with
+decimal unsigned integer numerator and positive denominator, computed using BigInt.
+For example amount=6, balance=9 yields `"2/3"`; zero amount and positive balance
+yields `"0/1"`; equal positive values yield `"1/1"`. No Number conversion,
+rounding, precision cap or clipping occurs, even for uint256 extremes. Balance zero
+yields null for both 0/0 and positive/0, never a fake zero or infinity. A complete
+row with sender balance `"0"` identifies this undefined ratio; a failed row with
+null sender balance identifies unavailable state. The manifest records
+`ratioEncoding: reduced_unsigned_rational_string` and `ratioZeroDenominator: null`
+(the policy value is the string `"null"`, describing the row's actual null).
+
+Before feeding a model, parse the ratio with arbitrary precision and explicitly
+choose numeric precision/scaling; it is not a categorical feature or a JSON number.
+For Python, `fractions.Fraction(row["amountToSenderBalanceRatio"])` preserves it
+exactly; convert numerator and denominator using `decimal.Decimal` with an explicit
+precision only at the model preprocessing boundary. Check for null first and keep
+zero-denominator and missing-state masks from the balances/status. Very small
+positive ratios remain distinct from zero in the exported data.
+
+For a real prediction, decode the submitted call and query the same accounts at an
+explicit, already-known reference block (for example the last known canonical block
+at submission); record that height. The eventual inclusion block is unknown then.
+Evaluate that reference-age/deployment mismatch separately, including within-block
+effects. A balance measured after execution is audit information with outcome leakage,
+not an eligible input for pre-execution estimation. No post-state is collected here.
+Numeric block tags trust provider canonical history; the existing resume hash anchor
+is retained, with no quorum, parent-hash pinning or reorganization repair.
+
+Schema 3 adds these columns even with enrichment disabled. Old schema-1/2 checkpoints
+are rejected before writes: select a fresh output directory instead of appending to
+old parts. The shipped example now targets `usdc-enriched-v3`. Global enrichment and
+per-contract ERC-20 options are fingerprinted, so changing either also requires a
+new run. Output formats can still change on compatible resume. Manifests include
+the enable flag, reference convention, failure policy, ratio encoding/zero policy
+and approximation limitation.
+The original USDC example was used as a schema/calldata reference; no live state
+queries, expanded extraction or model training were performed for this change.
+
+## Version 3 data dictionary
 
 Rows are keyed by `(chainId, transactionHash)`. Hex is lowercase; decimal strings
-are exact unsigned integers. All fields are required except the four explicitly
+are exact unsigned integers. All fields are required except the explicitly
 nullable fields below. C = eligible pre-execution candidate, T = target, A = audit.
 Candidates are an eligibility boundary, not automatic MLP inputs.
+
+Schema-3 additions (C = eligible candidate, A = audit) are:
+
+| Field                            | Source / derivation                                             | Role | Type / units                                                                                 | Nullable |
+| -------------------------------- | --------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------- | -------- |
+| tokenAmount                      | decoded transfer uint256                                        | C    | exact decimal string, token base units                                                       | yes      |
+| isZeroAmount                     | decoded amount equals zero                                      | C    | INT32, 0 or 1                                                                                | yes      |
+| isSelfTransfer                   | decoded recipient equals transaction sender (case-insensitive)  | C    | INT32, 0 or 1                                                                                | yes      |
+| senderHasEnoughBalance           | reference sender balance >= decoded amount                      | C    | INT32, 0 or 1                                                                                | yes      |
+| amountToSenderBalanceRatio       | decoded amount / reference sender balance                       | C    | exact reduced rational string p/q, dimensionless; null for zero balance or unavailable state | yes      |
+| stateBlockNumber                 | inclusion height minus one, when a historical read is attempted | A    | exact decimal string, block height                                                           | yes      |
+| senderTokenBalanceBeforeBlock    | balanceOf(transaction sender) at stateBlockNumber               | C    | exact decimal string, token base units                                                       | yes      |
+| recipientTokenBalanceBeforeBlock | balanceOf(calldata recipient) at stateBlockNumber               | C    | exact decimal string, token base units                                                       | yes      |
+| recipientBalanceWasZero          | reference recipient balance equals zero                         | C    | INT32, 0 or 1                                                                                | yes      |
+| senderBalanceEqualsAmount        | reference sender balance equals calldata uint256 amount         | C    | INT32, 0 or 1                                                                                | yes      |
+| stateEnrichmentStatus            | enrichment applicability/result                                 | A    | string enum documented above                                                                 | no       |
+| stateEnrichmentReason            | sanitized missingness reason                                    | A    | string code documented above; null when complete                                             | yes      |
+
+The existing `initialPredictors` list stays fixed; the nine enrichment
+new candidates extend the manifest `features` allowlist. Reference height, status
+and failure reasons are audit metadata and must not become model inputs implicitly.
 
 | Field                     | Source / derivation                                         | Role | Type, encoding and units                                                              | Nullable |
 | ------------------------- | ----------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------- | -------- |
@@ -155,7 +286,7 @@ Candidates are an eligibility boundary, not automatic MLP inputs.
 | transactionIndex          | inclusion position, receipt cross-check                     | A    | exact decimal string, numeric ordering within block                                   | no       |
 | blockTimestamp            | inclusion block timestamp                                   | A    | exact decimal string, UTC Unix seconds                                                | no       |
 | receiptStatus             | receipt outcome                                             | A    | string, success or reverted; neither filtered by default                              | no       |
-| schemaVersion             | extractor dictionary version                                | A    | string, initially 1                                                                   | no       |
+| schemaVersion             | extractor dictionary version                                | A    | string, currently 3                                                                   | no       |
 
 The seven initial hypotheses are chainName, to, calldataBytes, functionSelector,
 calldataNonzeroBytes, value, accessListStorageKeyCount. Encode network, recipient
@@ -199,7 +330,7 @@ resume or a zero-match run. After extraction errors, a best-effort incomplete
 report reflects only durable checkpointed rows. A failed PDF write is reported as
 an error while preserving committed Parquet/checkpoint state; rerunning the same
 command regenerates it. Report generation does not change dataset selection or
-the version-1 row schema. No timestamp or private local path is embedded.
+the version-3 row schema. No timestamp or private local path is embedded.
 
 PDF verification (2026-10-19): build and typecheck passed; the full offline suite
 passed 136 tests across 13 files. Tests cover exact statistics, grouping, empty and
@@ -213,8 +344,8 @@ reviewed, along with empty and long-selection cases, without making new RPC read
 The maintained [hyparquet-writer](https://github.com/hyparam/hyparquet-writer)
 writes flat, uncompressed Parquet parts. Every string in the dictionary is a
 BYTE_ARRAY annotated UTF8 (including decimal quantities and JSON accessList).
-The type code and five derived counts use INT32. Only gasPrice, maxFeePerGas,
-maxPriorityFeePerGas and functionSelector are OPTIONAL; other columns are REQUIRED.
+The type code, five derived counts and five transfer/balance indicators use INT32.
+Nullable fields in the dictionary are OPTIONAL; other columns are REQUIRED.
 Schema version is also recorded in file metadata. Empty parts retain the full schema.
 Rows sort numerically by chain ID, block height and inclusion index, and duplicate
 identities deduplicate; conflicting duplicates are errors. Decimal columns sort
@@ -310,7 +441,7 @@ compiled code. The CLI remains procedural composition of application services.
 | ConfigurationLoader                                            | Resolve YAML files relative to the invocation directory and validate configuration |
 | RpcClientFactory / RPCManager                                  | Create read-only viem adapters; isolate per-network health and fallback            |
 | TransactionScanner                                             | Scan inclusive batches and validate direct-call transaction/receipt identities     |
-| RowNormalizer                                                  | Convert matched observations into the selected network's version-1 rows            |
+| RowNormalizer                                                  | Convert matched observations into the selected network's version-3 rows            |
 | ExtractionRunner                                               | Coordinate scanning, normalization, durable commits, resume and outputs            |
 | CheckpointRepository                                           | Load/validate checkpoints; verify parts; commit a part before its checkpoint       |
 | FileStore                                                      | Adapt the storage interface to atomic local-file replacement                       |
@@ -355,6 +486,18 @@ credentials, live endpoints or real backoff delays. Live endpoint reviews and sm
 extraction are separate and never prerequisites for offline tests.
 
 ## Recorded verification — 2026-10-18
+
+ERC-20 enrichment verification (2026-10-19): `npm --prefix extractor run check`
+passed formatting, typecheck, build and all 235 deterministic tests in 17 files,
+including 70 new state-enrichment/persistence cases and the extended compiled CLI
+fixture. Coverage includes exact uint256 values and rational ratios, transfer flags,
+zero denominators, calldata retained after state failure, missing archive state,
+recovery, null policy, all status outcomes, JSON/Parquet/PDF output and schema-bound
+resume rejecting schema-1/2 checkpoints before writes.
+`openspec validate add-erc20-historical-balances --strict --json` and
+`git diff --check` passed. Windows sandbox temporary-file replacement again returned
+EPERM in disk/CLI tests; the full check passed outside the sandbox. No live RPC
+extraction or model training ran; provider archive coverage remains unverified.
 
 - Clean lockfile install: `npm ci --offline --ignore-scripts` in extractor passed;
   npm reported zero vulnerabilities. The checked-in lockfile pins resolved versions.

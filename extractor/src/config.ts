@@ -17,10 +17,12 @@ export const outputFormats = ['parquet', 'pdf', 'json'] as const;
 export type OutputFormat = (typeof outputFormats)[number];
 export interface ContractSelection {
   address: string;
+  erc20?: boolean;
   functions?: string[];
   eventTopics?: string[];
 }
 export interface Selection {
+  erc20BalanceEnrichment: boolean;
   network: NetworkName;
   fromBlock: bigint;
   toBlock: bigint;
@@ -38,6 +40,11 @@ const fail = (): never => {
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return fail();
   return value as Record<string, unknown>;
+}
+function boolean(value: unknown): boolean {
+  if (value === undefined) return false;
+  if (typeof value !== 'boolean') return fail();
+  return value;
 }
 function positive(value: unknown, fallback: number, max = 2_147_483_647, min = 1): number {
   const n = value === undefined ? fallback : value;
@@ -91,6 +98,7 @@ export function validateSelection(raw: unknown, baseDirectory = process.cwd()): 
       seen.add(address);
       return {
         address,
+        erc20: boolean(c.erc20),
         functions: filter(c.functions, selector),
         eventTopics: filter(c.eventTopics, (t) => {
           if (!/^0x[0-9a-fA-F]{64}$/.test(t)) return fail();
@@ -109,6 +117,7 @@ export function validateSelection(raw: unknown, baseDirectory = process.cwd()): 
   )
     return fail();
   return {
+    erc20BalanceEnrichment: boolean(v.erc20BalanceEnrichment),
     network: v.network as NetworkName,
     fromBlock,
     toBlock,
