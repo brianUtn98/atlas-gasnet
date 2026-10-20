@@ -19,6 +19,11 @@ const raw = () => ({
   contracts: [{ address }],
 });
 describe('configuration', () => {
+  it('defaults to four concurrent RPC requests and accepts an explicit bounded limit', () => {
+    expect(validateSelection(raw()).rpcConcurrency).toBe(4);
+    const parsed = parseYaml(JSON.stringify({ ...raw(), rpcConcurrency: 8 }));
+    expect(validateSelection(parsed).rpcConcurrency).toBe(8);
+  });
   it('defaults to all three output formats and versions that choice in the repo example', async () => {
     expect(validateSelection(raw()).outputFormats).toEqual(['parquet', 'pdf', 'json']);
     const example = parseYaml(
@@ -77,6 +82,10 @@ describe('configuration', () => {
     { toBlock: 1.5 },
     { fromBlock: 2 ** 53 },
     { batchSize: 0 },
+    { rpcConcurrency: 0 },
+    { rpcConcurrency: 33 },
+    { rpcConcurrency: 1.5 },
+    { rpcConcurrency: '4' },
     { retries: 11 },
     { healthRefreshIntervalMs: 0 },
     { probeTimeoutMs: -1 },

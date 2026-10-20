@@ -103,11 +103,17 @@ export class Erc20BalanceEnricher {
     if (block.number <= 0n) return failed('invalid_state_block');
     const height = block.number - 1n;
     try {
-      const sender = await this.rpc.getTokenBalance(tx.to!, tx.from.toLowerCase(), height);
-      const recipient =
+      const senderRead = this.rpc.getTokenBalance(tx.to!, tx.from.toLowerCase(), height);
+      const balances = await Promise.allSettled([
+        senderRead,
         decoded.recipient === tx.from.toLowerCase()
-          ? sender
-          : await this.rpc.getTokenBalance(tx.to!, decoded.recipient, height);
+          ? senderRead
+          : this.rpc.getTokenBalance(tx.to!, decoded.recipient, height),
+      ]);
+      const [sender, recipient] = balances.map((result) => {
+        if (result.status === 'rejected') throw result.reason;
+        return result.value;
+      });
       assertData(typeof sender === 'bigint' && sender >= 0n && sender < 1n << 256n);
       assertData(typeof recipient === 'bigint' && recipient >= 0n && recipient < 1n << 256n);
       return {

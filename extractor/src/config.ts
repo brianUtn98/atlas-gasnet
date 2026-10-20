@@ -29,6 +29,7 @@ export interface Selection {
   contracts: ContractSelection[];
   outputDir: string;
   batchSize: number;
+  rpcConcurrency: number;
   retries: number;
   healthRefreshIntervalMs: number;
   probeTimeoutMs: number;
@@ -125,6 +126,7 @@ export function validateSelection(raw: unknown, baseDirectory = process.cwd()): 
     outputDir: resolve(baseDirectory, v.outputDir),
     outputFormats: [...formats] as OutputFormat[],
     batchSize: positive(v.batchSize, 100),
+    rpcConcurrency: positive(v.rpcConcurrency, 4, 32),
     retries: positive(v.retries, 3, 10, 0),
     healthRefreshIntervalMs: positive(v.healthRefreshIntervalMs, 30_000),
     probeTimeoutMs: positive(v.probeTimeoutMs, 5_000),
@@ -152,7 +154,13 @@ export function parseYaml(text: string): unknown {
     // Operational settings are bounded JS numbers; block integers retain precision.
     const value = doc.toJS({ maxAliasCount: 10 });
     if (value && typeof value === 'object')
-      for (const k of ['batchSize', 'retries', 'healthRefreshIntervalMs', 'probeTimeoutMs']) {
+      for (const k of [
+        'batchSize',
+        'rpcConcurrency',
+        'retries',
+        'healthRefreshIntervalMs',
+        'probeTimeoutMs',
+      ]) {
         if (typeof value[k] === 'bigint') value[k] = Number(value[k]);
       }
     return value;

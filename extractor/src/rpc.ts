@@ -1,5 +1,7 @@
 import { createPublicClient, http, numberToHex, type Hex } from 'viem';
 import { networks, type NetworkName } from './config.js';
+import { ConcurrencyLimiter } from './concurrency.js';
+import { silentProgress, type ProgressReporter } from './progress.js';
 
 export interface RpcTransaction {
   hash: string;
@@ -167,11 +169,23 @@ export class RpcClientFactory {
   }
 }
 interface ManagerOptions {
+  rpcConcurrency?: number;
+  progress?: ProgressReporter;
   retries?: number;
   healthRefreshIntervalMs?: number;
   probeTimeoutMs?: number;
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
+}
+class EndpointCoolingDown extends Error {}
+
+function permanentFailure(error: unknown): boolean {
+  let cause = error as { cause?: unknown; status?: number; code?: number } | undefined;
+  for (let depth = 0; cause && depth < 5; depth++, cause = cause.cause as typeof cause) {
+    if ([401, 403].includes(cause.status!) || [-32600, -32601, -32602].includes(cause.code!))
+      return true;
+  }
+  return false;
 }
 function retryAfter(error: unknown, now: number): number {
   // Inspect structured metadata only. Never surface external error messages or URLs.
@@ -200,6 +214,12 @@ export class RPCManager implements ReadonlyRPC {
   private readonly timeoutMs: number;
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
+  private readonly limiter: ConcurrencyLimiter;
+  private readonly progress: ProgressReporter;
+  private requests = 0;
+  private retryCount = 0;
+  private inFlight = 0;
+  private peakInFlight = 0;
   constructor(
     private readonly network: NetworkName,
     private readonly clients: ReadClient[],
@@ -210,6 +230,11 @@ export class RPCManager implements ReadonlyRPC {
     this.timeoutMs = options.probeTimeoutMs ?? 5_000;
     this.now = options.now ?? Date.now;
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    const concurrency = options.rpcConcurrency ?? 4;
+    if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 32)
+      throw new Error('Invalid RPC manager settings.');
+    this.limiter = new ConcurrencyLimiter(concurrency);
+    this.progress = options.progress ?? silentProgress;
     if (
       !clients.length ||
       !Number.isInteger(this.retries) ||
@@ -232,17 +257,74 @@ export class RPCManager implements ReadonlyRPC {
   snapshot(): Observation[] {
     return this.observations.map((o) => ({ ...o }));
   }
-  private async bounded<T>(work: () => Promise<T>): Promise<T> {
+  metrics() {
+    return {
+      requests: this.requests,
+      retries: this.retryCount,
+      inFlight: this.inFlight,
+      peakInFlight: this.peakInFlight,
+    };
+  }
+  private async bounded<T>(work: () => Promise<T>, beforeStart: () => void = () => {}): Promise<T> {
+    const release = await this.limiter.acquire(this.timeoutMs);
+    try {
+      beforeStart();
+    } catch (error) {
+      release();
+      throw error;
+    }
+    // A wrapper timeout must not release a permit while the transport is still
+    // active. The HTTP transport has its own aborting timeout with the same limit.
+    const pending = Promise.resolve().then(work);
+    this.requests++;
+    this.inFlight++;
+    this.peakInFlight = Math.max(this.peakInFlight, this.inFlight);
+    const finished = () => {
+      this.inFlight--;
+      release();
+    };
+    void pending.then(finished, finished);
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([
-        Promise.resolve().then(work),
+        pending,
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => reject(new Error('RPC timeout.')), this.timeoutMs);
         }),
       ]);
     } finally {
       clearTimeout(timer);
+    }
+  }
+  private async execute<T>(observation: Observation, operation: () => Promise<T>): Promise<T> {
+    for (;;) {
+      const delay = observation.cooldownUntil - this.now();
+      if (delay > 0) {
+        this.progress({ phase: 'rpc_wait', endpoint: observation.index + 1, delayMs: delay });
+        await this.sleep(delay);
+      }
+      try {
+        return await this.bounded(
+          async () => {
+            try {
+              return await operation();
+            } catch (error) {
+              // Publish provider cooldown before releasing the permit to queued calls.
+              observation.cooldownUntil = Math.max(
+                observation.cooldownUntil,
+                this.now() + retryAfter(error, this.now()),
+              );
+              throw error;
+            }
+          },
+          () => {
+            // Another request may establish Retry-After while this one is queued.
+            if (this.now() < observation.cooldownUntil) throw new EndpointCoolingDown();
+          },
+        );
+      } catch (error) {
+        if (!(error instanceof EndpointCoolingDown)) throw error;
+      }
     }
   }
   async refresh(force = false): Promise<void> {
@@ -255,22 +337,28 @@ export class RPCManager implements ReadonlyRPC {
           this.clients.slice(start, start + 4).map(async (client, offset) => {
             const o = this.observations[start + offset];
             if (this.now() < o.cooldownUntil) {
-              o.healthy = false;
               return;
             }
             try {
-              const head = await this.bounded(async () => {
-                const chainId = await client.getChainId();
-                assertData(chainId === networks[this.network].id);
-                const value = await client.getBlockNumber();
-                assertData(typeof value === 'bigint' && value >= 0n);
-                return value;
+              const probes = await Promise.allSettled([
+                this.execute(o, () => client.getChainId()),
+                this.execute(o, () => client.getBlockNumber()),
+              ]);
+              const [chainId, value] = probes.map((result) => {
+                if (result.status === 'rejected') throw result.reason;
+                return result.value;
               });
-              Object.assign(o, { head, checkedAt: this.now(), healthy: true, cooldownUntil: 0 });
+              assertData(chainId === networks[this.network].id);
+              assertData(typeof value === 'bigint' && value >= 0n);
+              Object.assign(o, { head: value, checkedAt: this.now(), healthy: true });
+              if (o.cooldownUntil <= this.now()) o.cooldownUntil = 0;
             } catch (error) {
               o.healthy = false;
               o.checkedAt = this.now();
-              o.cooldownUntil = this.now() + retryAfter(error, this.now());
+              o.cooldownUntil = Math.max(
+                o.cooldownUntil,
+                this.now() + retryAfter(error, this.now()),
+              );
             }
           }),
         );
@@ -287,6 +375,7 @@ export class RPCManager implements ReadonlyRPC {
     operation: (client: ReadClient) => Promise<T>,
     validate: (value: T) => void,
     preserveProbeHealth = false,
+    operationName = 'block',
   ): Promise<T> {
     const rejected = new Set<number>();
     for (let round = 0; round <= this.retries; round++) {
@@ -307,25 +396,44 @@ export class RPCManager implements ReadonlyRPC {
         rejected.add(o.index);
         for (let attempt = 0; attempt <= this.retries; attempt++) {
           try {
-            const value = await this.bounded(() => operation(this.clients[o.index]));
+            const value = await this.execute(o, () => operation(this.clients[o.index]));
             try {
               validate(value);
             } catch {
               throw new InvalidData();
             }
             o.healthy = true;
-            o.cooldownUntil = 0;
+            if (o.cooldownUntil <= this.now()) o.cooldownUntil = 0;
             return value;
           } catch (error) {
-            if (!preserveProbeHealth) o.healthy = false;
-            if (error instanceof InvalidData) break;
+            if (error instanceof InvalidData || permanentFailure(error)) {
+              if (!preserveProbeHealth) o.healthy = false;
+              this.progress({
+                phase: 'rpc_rejected',
+                operation: operationName,
+                endpoint: o.index + 1,
+                height: String(height),
+              });
+              break;
+            }
             const delay = Math.max(
               Math.min(250 * 2 ** attempt, 30_000),
               retryAfter(error, this.now()),
             );
-            if (!preserveProbeHealth) o.cooldownUntil = this.now() + delay;
-            if (attempt === this.retries) break;
-            await this.sleep(delay);
+            o.cooldownUntil = Math.max(o.cooldownUntil, this.now() + delay);
+            if (attempt === this.retries) {
+              if (!preserveProbeHealth) o.healthy = false;
+              break;
+            }
+            this.retryCount++;
+            this.progress({
+              phase: 'rpc_retry',
+              operation: operationName,
+              endpoint: o.index + 1,
+              height: String(height),
+              attempt: attempt + 2,
+              delayMs: delay,
+            });
           }
         }
       }
@@ -351,6 +459,7 @@ export class RPCManager implements ReadonlyRPC {
         assertData(typeof value === 'bigint' && value >= 0n && value < 1n << 256n);
       },
       true,
+      'balance',
     );
   }
   getBlock(height: bigint, validate: (block: RpcBlock) => void = () => {}): Promise<RpcBlock> {
@@ -380,6 +489,8 @@ export class RPCManager implements ReadonlyRPC {
         );
         validate(r);
       },
+      false,
+      'receipt',
     );
   }
 }

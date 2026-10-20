@@ -121,6 +121,13 @@ to limit repeated work after interruption. Rerun the identical command to resume
 if you change the selection, choose a new output directory. Check completeness
 before training; do not treat an interrupted extraction as the complete split.
 
+The selections use `rpcConcurrency: 4` for bounded parallel reads. Run the commands
+sequentially on the public endpoint: the limit is per process. Console logs show
+scanned and committed block progress, receipts/enriched rows, retries and elapsed
+time. Only committed block coverage counts toward `percent`; scanning can be ahead.
+You can change concurrency (1–32) and resume with the same output directory. See
+[concurrency and progress](extractor.md#concurrency-and-console-progress) for details.
+
 All four selections enable ERC-20 enrichment, but the current implementation
 enriches only canonical `transfer(address,uint256)` calls. Other functions have
 `not_applicable` status and null transfer/state candidates. Historical-state

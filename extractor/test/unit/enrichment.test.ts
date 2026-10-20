@@ -283,8 +283,11 @@ describe('historical balance routing', () => {
     vi.mocked(client.getTokenBalance)
       .mockRejectedValueOnce({ headers: { 'retry-after': '2' } })
       .mockResolvedValue(5n);
-    const sleep = vi.fn(async (_ms: number) => {});
-    const rpc = new RPCManager('ETHEREUM', [client], { retries: 1, sleep });
+    let now = 0;
+    const sleep = vi.fn(async (ms: number) => {
+      now += ms;
+    });
+    const rpc = new RPCManager('ETHEREUM', [client], { retries: 1, sleep, now: () => now });
     expect(await rpc.getTokenBalance(address, other, 8n)).toBe(5n);
     expect(sleep).toHaveBeenCalledExactlyOnceWith(2000);
   });
@@ -298,8 +301,15 @@ describe('historical balance routing', () => {
       Error('missing trie node / archive unavailable'),
     );
     vi.mocked(good.getTokenBalance).mockResolvedValue(amount);
-    const sleep = vi.fn(async () => {});
-    const rpc = new RPCManager('ETHEREUM', [wrong, failing, good], { retries: 2, sleep });
+    let now = 0;
+    const sleep = vi.fn(async (ms: number) => {
+      now += ms;
+    });
+    const rpc = new RPCManager('ETHEREUM', [wrong, failing, good], {
+      retries: 2,
+      sleep,
+      now: () => now,
+    });
     expect(await rpc.getTokenBalance(address, other, 8n)).toBe(amount);
     expect(wrong.getTokenBalance).not.toHaveBeenCalled();
     expect(failing.getTokenBalance).toHaveBeenCalledTimes(3);

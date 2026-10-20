@@ -1,4 +1,5 @@
 import type { ContractSelection, Selection } from './config.js';
+import { ConcurrencyLimiter, mapConcurrent } from './concurrency.js';
 import {
   assertData,
   validHash,
@@ -105,50 +106,69 @@ export interface Match {
 }
 export class TransactionScanner {
   private readonly contracts: Map<string, ContractSelection>;
+  private readonly transactionWorkers: ConcurrencyLimiter;
 
   constructor(
     private readonly rpc: ReadonlyRPC,
     private readonly selection: Selection,
+    private readonly progress: (blocks: number, receipts: number) => void = () => {},
   ) {
     this.contracts = new Map(selection.contracts.map((contract) => [contract.address, contract]));
+    this.transactionWorkers = new ConcurrencyLimiter(selection.rpcConcurrency);
   }
 
   async scan(
     from = this.selection.fromBlock,
     to = this.selection.toBlock,
+    onMatch?: (match: Match) => Promise<void>,
   ): Promise<{ matches: Match[]; lastBlock: RpcBlock }> {
     const { rpc, selection, contracts } = this;
     if (from > to || from < selection.fromBlock || to > selection.toBlock)
       throw new Error('Invalid batch range.');
-    const matches: Match[] = [];
-    let lastBlock!: RpcBlock;
-    for (let height = from; height <= to; height++) {
+    const heights: bigint[] = [];
+    for (let height = from; height <= to; height++) heights.push(height);
+    let blocksRead = 0;
+    let receiptsRead = 0;
+    const batches = await mapConcurrent(heights, selection.rpcConcurrency, async (height) => {
       const block = await rpc.getBlock(height, (b) => validateFullBlock(b, height));
       validateFullBlock(block, height);
-      for (const tx of block.transactions) {
+      this.progress(++blocksRead, receiptsRead);
+      const selected = block.transactions.filter((tx) => {
         const contract = tx.to ? contracts.get(tx.to.toLowerCase()) : undefined;
-        if (
-          !contract ||
-          (contract.functions &&
-            (tx.input.length < 10 ||
-              !contract.functions.includes(tx.input.slice(0, 10).toLowerCase())))
-        )
-          continue;
-        const receipt = await rpc.getReceipt(tx.hash, height, (r) => validateReceipt(r, tx, block));
-        validateReceipt(receipt, tx, block);
-        if (
-          contract.eventTopics &&
-          !receipt.logs.some(
-            (log) =>
-              equalHex(log.address, contract.address) &&
-              contract.eventTopics!.includes(log.topics[0]?.toLowerCase()),
+        return (
+          contract &&
+          (!contract.functions ||
+            (tx.input.length >= 10 &&
+              contract.functions.includes(tx.input.slice(0, 10).toLowerCase())))
+        );
+      });
+      const matches = await mapConcurrent(selected, selection.rpcConcurrency, async (tx) => {
+        const release = await this.transactionWorkers.acquire();
+        try {
+          const contract = contracts.get(tx.to!.toLowerCase())!;
+          const receipt = await rpc.getReceipt(tx.hash, height, (r) =>
+            validateReceipt(r, tx, block),
+          );
+          validateReceipt(receipt, tx, block);
+          this.progress(blocksRead, ++receiptsRead);
+          if (
+            contract.eventTopics &&
+            !receipt.logs.some(
+              (log) =>
+                equalHex(log.address, contract.address) &&
+                contract.eventTopics!.includes(log.topics[0]?.toLowerCase()),
+            )
           )
-        )
-          continue;
-        matches.push({ block, transaction: tx, receipt });
-      }
-      lastBlock = block;
-    }
-    return { matches, lastBlock };
+            return undefined;
+          const match = { block, transaction: tx, receipt };
+          await onMatch?.(match);
+          return match;
+        } finally {
+          release();
+        }
+      });
+      return { block, matches: matches.filter((match): match is Match => match !== undefined) };
+    });
+    return { matches: batches.flatMap((batch) => batch.matches), lastBlock: batches.at(-1)!.block };
   }
 }

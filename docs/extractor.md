@@ -28,7 +28,7 @@ functions and topics combine with AND. Duplicate recipients are errors.
 RPC YAML maps uppercase network names to ordered, nonempty HTTP(S) URL lists.
 Only the selected network is required in custom files. Unknown networks, invalid
 URLs/addresses/ranges, duplicate URLs, and malformed YAML fail before extraction.
-Defaults: batchSize=100, retries=3 (allowed 0–10), healthRefreshIntervalMs=30000,
+Defaults: batchSize=100, rpcConcurrency=4 (allowed 1–32), retries=3 (allowed 0–10), healthRefreshIntervalMs=30000,
 probeTimeoutMs=5000. Batch size and timeouts must be positive bounded integers.
 
 ## Output formats
@@ -95,8 +95,9 @@ probes failed; the recorded results came from an explicitly permitted network ru
 ## RPC routing
 
 Each network has an independent read-only RPCManager. It probes identity and head
-at startup and request-driven refreshes every 30 seconds (configurable); at most
-four probes run together, each with a 5 second configurable timeout. Overlapping
+at startup and request-driven refreshes every 30 seconds (configurable). Identity
+and head probes run independently under the same global concurrency limit as
+data requests, each with a 5 second configurable timeout. Overlapping
 refreshes coalesce. Unexpired healthy observations rank by descending head, then
 configuration order. Nodes below the requested height are excluded. Failed nodes
 can recover on later refreshes. The interface exposes block, receipt and historical
@@ -106,9 +107,60 @@ capped at 30 seconds; structured Retry-After seconds/dates are honored up to tha
 cap. Exhaustion or invalid historical data falls back in head order. An endpoint
 rejected for a read is never revisited in that read. All failures abort unresolved
 work; diagnostics use network names and endpoint indexes, never provider errors.
+Structured authorization (401/403) and invalid/unsupported request errors
+(-32600/-32601/-32602) skip retries for that endpoint/read. Provider Retry-After
+cooldowns apply to queued calls too, including historical state requests. An
+already in-flight request cannot be recalled by a later cooldown response.
 Head freshness is a routing heuristic: independently validate historical block,
 transaction and receipt identities. A recent high head proves neither historical
 coverage nor correctness. There is no quorum or automatic reorganization repair.
+
+## Concurrency and console progress
+
+```yaml
+rpcConcurrency: 4
+```
+
+The default is four in-flight RPC requests per process, across all providers and
+operations: health probes, blocks, receipts and historical balances. Set an integer
+from 1 to 32; use 1 for sequential transport calls. Blocks are scanned concurrently
+inside a batch, selected transaction workers overlap receipt retrieval and
+enrichment, and independent sender/recipient balances are fetched together. Self
+transfers reuse the sender request. A shared transaction-worker bound prevents
+nested block workers from multiplying active transaction processing. All actual
+network requests still share the global permit pool.
+
+The HTTP transport retains its aborting timeout. A manager timeout does not release
+the physical request's permit until the transport settles; queued permit waits are
+also bounded. Worker pools drain in-flight work on failure before reconciliation.
+Checkpoints remain sequential and atomic, with rows ordered by block/transaction
+index regardless of response order. `batchSize` controls checkpoint boundaries,
+not HTTP request batching. JSON-RPC batch transport is not enabled by this setting.
+
+Changing `rpcConcurrency` does not change the selection fingerprint: rerun the
+same command to resume an existing checkpoint. Each process owns its own limit;
+four simultaneous CLI runs with concurrency 4 can create 16 RPC requests together.
+Use one collection process at a time on the public PoC endpoint. Concurrency is a
+maximum in-flight count, not a requests-per-second quota; reduce it if the provider
+repeatedly rate-limits requests.
+
+The CLI prints timestamped progress with elapsed seconds. Intermediate scan,
+enrichment and retry/wait updates are throttled to approximately once per second.
+Start/resume, batch boundaries, confirmed checkpoints, export and completion are
+printed immediately. `percent` describes durably committed block coverage;
+`scannedPercent` describes blocks read and may be ahead of committed progress.
+Rows/receipts within a batch are work in progress until `batch_committed`.
+`complete` is emitted after the selected outputs finish. The final `rpc_summary`
+includes attempted requests, retries and observed peak concurrency. Provider URLs,
+raw exception messages, credentials and transaction calldata are never logged.
+
+Example (illustrative counts and elapsed time):
+
+```text
+[2026-10-20T03:10:00.000Z] start elapsed=0.0s network=ETHEREUM fromBlock=19000000 toBlock=19001439 rpcConcurrency=4
+[2026-10-20T03:10:02.000Z] scan elapsed=2.0s scannedBlocks=4 totalBlocks=1440 percent=0 scannedPercent=0.27 receiptsRead=8 committedBlocks=0
+[2026-10-20T03:10:12.000Z] batch_committed elapsed=12.0s committedBlocks=25 totalBlocks=1440 percent=1.73 rows=100 nextBlock=19000025 failedEnrichments=0
+```
 
 ## Selection and bias
 

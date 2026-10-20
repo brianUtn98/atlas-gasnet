@@ -23,6 +23,7 @@ contracts:
 outputDir: data/extractions/poc-v3/validation
 outputFormats: [parquet, pdf, json]
 batchSize: 25
+rpcConcurrency: 4
 retries: 3
 healthRefreshIntervalMs: 30000
 probeTimeoutMs: 10000

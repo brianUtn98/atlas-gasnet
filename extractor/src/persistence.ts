@@ -9,6 +9,7 @@ import { assertData, type ReadonlyRPC } from './rpc.js';
 import { encodeJson } from './serialization.js';
 import type { Checkpoint, ExtractionManifest } from './state.js';
 import type { Store } from './store.js';
+import { silentProgress, type ProgressReporter } from './progress.js';
 
 export { SelectionIdentity } from './identity.js';
 export { FileStore } from './store.js';
@@ -18,7 +19,6 @@ export type { Checkpoint, ExtractionManifest, Part } from './state.js';
 /** Application service: coordinate extraction, durable progress and output strategies. */
 export class ExtractionRunner {
   private readonly repository: CheckpointRepository;
-  private readonly scanner: TransactionScanner;
   private readonly normalizer: RowNormalizer;
   private readonly manifests: ManifestBuilder;
 
@@ -27,28 +27,68 @@ export class ExtractionRunner {
     private readonly rpc: ReadonlyRPC,
     private readonly store: Store,
     private readonly outputs = new OutputManager(),
+    private readonly progress: ProgressReporter = silentProgress,
   ) {
     this.repository = new CheckpointRepository(store, selection);
-    this.scanner = new TransactionScanner(rpc, selection);
     this.normalizer = new RowNormalizer(selection.network);
     this.manifests = new ManifestBuilder(selection, outputs);
   }
 
   async run(): Promise<ExtractionManifest> {
     let checkpoint = await this.repository.loadOrCreate();
+    const totalBlocks = this.selection.toBlock - this.selection.fromBlock + 1n;
+    const percent = (count: bigint) => Number((count * 10000n) / totalBlocks) / 100;
     try {
       const seen = await this.repository.readCommittedRows(checkpoint);
       await this.verifyResumeAnchor(checkpoint);
       await this.publishManifest(checkpoint);
+      this.progress({
+        phase: 'resume',
+        committedBlocks: String(BigInt(checkpoint.nextBlock) - this.selection.fromBlock),
+        totalBlocks: String(totalBlocks),
+        rows: seen.size,
+      });
 
       while (BigInt(checkpoint.nextBlock) <= this.selection.toBlock) {
         const range = this.repository.nextRange(checkpoint);
-        const batch = await this.scanner.scan(range.from, range.to);
+        const committedBlocks = range.from - this.selection.fromBlock;
+        this.progress({
+          phase: 'batch_start',
+          fromBlock: String(range.from),
+          toBlock: String(range.to),
+          percent: percent(committedBlocks),
+          committedBlocks: String(committedBlocks),
+          totalBlocks: String(totalBlocks),
+        });
         const rows: Row[] = [];
         const enricher = new Erc20BalanceEnricher(this.selection, this.rpc);
-        for (const match of batch.matches) {
+        let scanned = 0;
+        let receipts = 0;
+        const scanner = new TransactionScanner(this.rpc, this.selection, (blocks, readReceipts) => {
+          scanned = blocks;
+          receipts = readReceipts;
+          this.progress({
+            phase: 'scan',
+            scannedBlocks: String(committedBlocks + BigInt(scanned)),
+            totalBlocks: String(totalBlocks),
+            percent: percent(committedBlocks),
+            scannedPercent: percent(committedBlocks + BigInt(scanned)),
+            receiptsRead: receipts,
+            committedBlocks: String(committedBlocks),
+          });
+        });
+        const batch = await scanner.scan(range.from, range.to, async (match) => {
           rows.push({ ...this.normalizer.normalize(match), ...(await enricher.enrich(match)) });
-        }
+          this.progress({
+            phase: 'enrich',
+            processedRows: rows.length,
+            receiptsRead: receipts,
+            scannedBlocks: String(committedBlocks + BigInt(scanned)),
+            totalBlocks: String(totalBlocks),
+            committedBlocks: String(committedBlocks),
+            percent: percent(committedBlocks),
+          });
+        });
         for (const row of rows) {
           if (seen.has(rowKey(row))) {
             throw new Error('Transaction identity repeated across committed batches.');
@@ -64,10 +104,34 @@ export class ExtractionRunner {
           seen.set(rowKey(row), row);
         }
         await this.publishManifest(checkpoint);
+        const committed = BigInt(checkpoint.nextBlock) - this.selection.fromBlock;
+        this.progress({
+          phase: 'batch_committed',
+          committedBlocks: String(committed),
+          totalBlocks: String(totalBlocks),
+          percent: percent(committed),
+          rows: seen.size,
+          nextBlock: checkpoint.nextBlock,
+          failedEnrichments: rows.filter((row) => row.stateEnrichmentStatus === 'failed').length,
+        });
       }
 
-      return await this.publishOutputs(checkpoint, [...seen.values()]);
+      this.progress({
+        phase: 'outputs',
+        rows: seen.size,
+        formats: this.selection.outputFormats.join(','),
+      });
+      const result = await this.publishOutputs(checkpoint, [...seen.values()]);
+      this.progress({
+        phase: 'complete',
+        committedBlocks: String(totalBlocks),
+        totalBlocks: String(totalBlocks),
+        percent: 100,
+        rows: seen.size,
+      });
+      return result;
     } catch (error) {
+      this.progress({ phase: 'failed', nextBlock: checkpoint.nextBlock });
       await this.reconcile();
       throw error;
     }

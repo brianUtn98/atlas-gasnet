@@ -14,6 +14,7 @@ outputFormats:
   - pdf
   - json
 batchSize: 100
+rpcConcurrency: 4
 retries: 3
 healthRefreshIntervalMs: 30000
 probeTimeoutMs: 5000
