@@ -1,0 +1,6 @@
+# Read-only probes on 2026-10-19: Ethereum chain ID 1, historical blocks,
+# a receipt at block 19000000, and a balanceOf call at block 18999999 succeeded.
+# PublicNode returned a null receipt and required a token for historical state.
+# Availability and free rate limits can change; this is not a service guarantee.
+ETHEREUM:
+  - https://eth.drpc.org

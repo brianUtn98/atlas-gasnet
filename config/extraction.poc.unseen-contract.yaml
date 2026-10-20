@@ -1,0 +1,20 @@
+# Additional final evaluation only. Never merge into training or validation.
+# Same future window as the temporal test, but a disjoint contract/transaction set.
+network: ETHEREUM
+erc20BalanceEnrichment: true
+fromBlock: '19001800'
+toBlock: '19002399'
+contracts:
+  # USDT, deliberately absent from the other three selections.
+  - address: '0xdac17f958d2ee523a2206206994597c13d831ec7'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+outputDir: data/extractions/poc-v3/unseen-contract
+outputFormats: [parquet, pdf, json]
+batchSize: 25
+retries: 3
+healthRefreshIntervalMs: 30000
+probeTimeoutMs: 10000

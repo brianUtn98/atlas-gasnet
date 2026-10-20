@@ -52,6 +52,10 @@ Parquet contains dataset batches, `transactions.json` contains all normalized ro
 
 See [docs/PROJECT.md](docs/PROJECT.md) for scope, methodology, and constraints.
 
+For real PoC data, use the [collection guide](docs/poc-data.md): it provides
+chronological train/validation/test configurations for USDC and WETH9, plus a
+separate USDT unseen-contract test, all with Parquet, JSON and PDF output.
+
 Optional ERC-20 balance enrichment adds exact sender/recipient balances at the end
 of the block before inclusion, exact token amounts, transfer/state indicators and
 an exact rational amount-to-balance ratio. Enable

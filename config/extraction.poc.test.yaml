@@ -1,0 +1,28 @@
+# Freeze this split until model selection is complete; see docs/poc-data.md.
+network: ETHEREUM
+erc20BalanceEnrichment: true
+fromBlock: '19001800'
+toBlock: '19002399'
+contracts:
+  # USDC
+  - address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+  # Canonical WETH9
+  - address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+      - deposit()
+      - withdraw(uint256)
+outputDir: data/extractions/poc-v3/test
+outputFormats: [parquet, pdf, json]
+batchSize: 25
+retries: 3
+healthRefreshIntervalMs: 30000
+probeTimeoutMs: 10000
