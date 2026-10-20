@@ -31,6 +31,45 @@ URLs/addresses/ranges, duplicate URLs, and malformed YAML fail before extraction
 Defaults: batchSize=100, retries=3 (allowed 0–10), healthRefreshIntervalMs=30000,
 probeTimeoutMs=5000. Batch size and timeouts must be positive bounded integers.
 
+## Output formats
+
+Choose exports in the extraction YAML, for example:
+
+```yaml
+outputDir: data/extractions/usdc-example
+outputFormats: [parquet, pdf, json]
+```
+
+The versioned repository configuration explicitly enables all three; omitted
+outputFormats also defaults to all three. Any nonempty subset is accepted, such
+as `[json]` or `[parquet, pdf]`. Unknown, uppercase, duplicate, empty or non-list
+values fail validation. There are no separate CLI format flags.
+
+- `parquet`: deterministic `part-FROM-TO.parquet` batches with the version-1 schema.
+- `json`: `transactions.json`, an array of every committed row, in numeric block
+  and transaction-index order, not just the PDF sample. Exact quantities remain
+  decimal strings, counts/type remain JSON numbers, null fee/selector fields stay
+  null, and accessList retains the schema's canonical JSON-string encoding. A
+  zero-match run exports `[]`.
+- `pdf`: `report.pdf`, the human-readable summary and bounded transaction sample.
+
+checkpoint.json and manifest.json are always operational metadata, irrespective
+of JSON export selection. When Parquet is disabled, durable batch data uses internal
+`batch-FROM-TO.checkpoint` files so resume still works without producing unrequested
+Parquet exports. Preserve those files along with the checkpoint. The manifest's
+`parts` describes durable batch files; `outputs` lists requested formats and export
+filenames, including `outputs.parquetFiles` for Parquet consumers.
+
+Formats do not change the selection fingerprint. They may be changed on resume:
+newly enabled formats are generated from committed data, without scanning completed
+blocks again (the existing resume anchor check still runs). Future unfinished
+batches use the current format choice; previously created exports/state are retained,
+not deleted. Use a new output directory when you need only the currently selected
+files. JSON/PDF snapshots are atomically replaced at completion and best-effort after
+extraction failures, using committed rows only. Export failure preserves extraction
+progress but fails the command; rerun to regenerate. Manifest.complete describes
+data coverage, not a guarantee that an interrupted export write finished.
+
 ## Public endpoint provenance
 
 Reviewed 2026-10-18 against [Chainlist's RPC listing](https://chainlist.org/rpcs.json):
@@ -88,35 +127,35 @@ are exact unsigned integers. All fields are required except the four explicitly
 nullable fields below. C = eligible pre-execution candidate, T = target, A = audit.
 Candidates are an eligibility boundary, not automatic MLP inputs.
 
-| Field | Source / derivation | Role | Type, encoding and units | Nullable |
-| --- | --- | --- | --- | --- |
-| from | transaction sender | C | string, 20-byte address | no |
-| to | top-level transaction recipient | C | string, 20-byte address; creations excluded | no |
-| type | transaction type; viem name to numeric code | C | integer EIP-2718 type (legacy=0, 2930=1, 1559=2, 4844=3, 7702=4) | no |
-| nonce | submitted transaction nonce | C | exact decimal string, sender sequence number | no |
-| value | submitted native transfer | C | exact decimal string, native base units (18 decimals on these networks) | no |
-| gasLimit | transaction gas | C | exact decimal string, gas units, execution cap | no |
-| gasPrice | submitted legacy/type-1 fee | C | exact decimal string, wei/gas; null for dynamic fees even if RPC supplies mined price | yes |
-| maxFeePerGas | submitted dynamic fee cap | C | exact decimal string, wei/gas; null for legacy/type-1 | yes |
-| maxPriorityFeePerGas | submitted dynamic priority cap | C | exact decimal string, wei/gas; null for legacy/type-1 | yes |
-| input | full submitted calldata | C | string, hex bytes; empty=0x | no |
-| accessList | submitted ordered address/storageKeys entries | C | canonical JSON string with lowercase hex; absent=[]; duplicates retained | no |
-| functionSelector | first four input bytes | C | four-byte hex string; null for shorter input; no decoded name | yes |
-| calldataBytes | full input byte count, including selector | C | integer, bytes; empty=0 | no |
-| calldataZeroBytes | full input bytes equal to 00 | C | integer, bytes; empty=0 | no |
-| calldataNonzeroBytes | calldataBytes minus calldataZeroBytes | C | integer, bytes; empty=0 | no |
-| accessListAddressCount | number of ordered access-list entries | C | integer count; absent=0 | no |
-| accessListStorageKeyCount | sum of all listed storage-key entries, including duplicates | C | integer count; absent=0 | no |
-| gasUsed | receipt gasUsed | T | exact decimal string, gas units consumed | no |
-| chainName | selected, RPC-verified registry network | C | uppercase categorical string | no |
-| chainId | selected, RPC-verified registry chain ID | A | exact decimal string | no |
-| transactionHash | transaction identity, receipt cross-check | A | string, 32-byte hex | no |
-| blockHash | inclusion block, transaction/receipt cross-check | A | string, 32-byte hex | no |
-| blockNumber | inclusion block height | A | exact decimal string, numeric chronological ordering | no |
-| transactionIndex | inclusion position, receipt cross-check | A | exact decimal string, numeric ordering within block | no |
-| blockTimestamp | inclusion block timestamp | A | exact decimal string, UTC Unix seconds | no |
-| receiptStatus | receipt outcome | A | string, success or reverted; neither filtered by default | no |
-| schemaVersion | extractor dictionary version | A | string, initially 1 | no |
+| Field                     | Source / derivation                                         | Role | Type, encoding and units                                                              | Nullable |
+| ------------------------- | ----------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------- | -------- |
+| from                      | transaction sender                                          | C    | string, 20-byte address                                                               | no       |
+| to                        | top-level transaction recipient                             | C    | string, 20-byte address; creations excluded                                           | no       |
+| type                      | transaction type; viem name to numeric code                 | C    | integer EIP-2718 type (legacy=0, 2930=1, 1559=2, 4844=3, 7702=4)                      | no       |
+| nonce                     | submitted transaction nonce                                 | C    | exact decimal string, sender sequence number                                          | no       |
+| value                     | submitted native transfer                                   | C    | exact decimal string, native base units (18 decimals on these networks)               | no       |
+| gasLimit                  | transaction gas                                             | C    | exact decimal string, gas units, execution cap                                        | no       |
+| gasPrice                  | submitted legacy/type-1 fee                                 | C    | exact decimal string, wei/gas; null for dynamic fees even if RPC supplies mined price | yes      |
+| maxFeePerGas              | submitted dynamic fee cap                                   | C    | exact decimal string, wei/gas; null for legacy/type-1                                 | yes      |
+| maxPriorityFeePerGas      | submitted dynamic priority cap                              | C    | exact decimal string, wei/gas; null for legacy/type-1                                 | yes      |
+| input                     | full submitted calldata                                     | C    | string, hex bytes; empty=0x                                                           | no       |
+| accessList                | submitted ordered address/storageKeys entries               | C    | canonical JSON string with lowercase hex; absent=[]; duplicates retained              | no       |
+| functionSelector          | first four input bytes                                      | C    | four-byte hex string; null for shorter input; no decoded name                         | yes      |
+| calldataBytes             | full input byte count, including selector                   | C    | integer, bytes; empty=0                                                               | no       |
+| calldataZeroBytes         | full input bytes equal to 00                                | C    | integer, bytes; empty=0                                                               | no       |
+| calldataNonzeroBytes      | calldataBytes minus calldataZeroBytes                       | C    | integer, bytes; empty=0                                                               | no       |
+| accessListAddressCount    | number of ordered access-list entries                       | C    | integer count; absent=0                                                               | no       |
+| accessListStorageKeyCount | sum of all listed storage-key entries, including duplicates | C    | integer count; absent=0                                                               | no       |
+| gasUsed                   | receipt gasUsed                                             | T    | exact decimal string, gas units consumed                                              | no       |
+| chainName                 | selected, RPC-verified registry network                     | C    | uppercase categorical string                                                          | no       |
+| chainId                   | selected, RPC-verified registry chain ID                    | A    | exact decimal string                                                                  | no       |
+| transactionHash           | transaction identity, receipt cross-check                   | A    | string, 32-byte hex                                                                   | no       |
+| blockHash                 | inclusion block, transaction/receipt cross-check            | A    | string, 32-byte hex                                                                   | no       |
+| blockNumber               | inclusion block height                                      | A    | exact decimal string, numeric chronological ordering                                  | no       |
+| transactionIndex          | inclusion position, receipt cross-check                     | A    | exact decimal string, numeric ordering within block                                   | no       |
+| blockTimestamp            | inclusion block timestamp                                   | A    | exact decimal string, UTC Unix seconds                                                | no       |
+| receiptStatus             | receipt outcome                                             | A    | string, success or reverted; neither filtered by default                              | no       |
+| schemaVersion             | extractor dictionary version                                | A    | string, initially 1                                                                   | no       |
 
 The seven initial hypotheses are chainName, to, calldataBytes, functionSelector,
 calldataNonzeroBytes, value, accessListStorageKeyCount. Encode network, recipient
@@ -143,6 +182,34 @@ Protocol references: [transactions](https://ethereum.org/developers/docs/transac
 
 ## Parquet handoff
 
+### Automatic PDF report
+
+When `pdf` is enabled, the extraction command writes `report.pdf` in outputDir, using pdf-lib
+inside the TypeScript app; no Python or external PDF service is required. The
+English report contains network and inclusive block range, committed coverage and
+completion state, transaction/part counts, gasUsed total/min/max/mean/median,
+success/revert counts, configured filters, recipient/selector group statistics,
+field interpretation, and the first 20 transactions in numeric block order.
+The sample is explicitly bounded; the full dataset remains in Parquet. Integer
+statistics stay exact through BigInt; means/medians round to two decimal places.
+No RPC URLs, credentials or model performance claims appear in the report.
+
+The PDF is atomically replaced at successful completion, including a completed
+resume or a zero-match run. After extraction errors, a best-effort incomplete
+report reflects only durable checkpointed rows. A failed PDF write is reported as
+an error while preserving committed Parquet/checkpoint state; rerunning the same
+command regenerates it. Report generation does not change dataset selection or
+the version-1 row schema. No timestamp or private local path is embedded.
+
+PDF verification (2026-10-19): build and typecheck passed; the full offline suite
+passed 136 tests across 13 files. Tests cover exact statistics, grouping, empty and
+incomplete runs, pagination, sample limits, privacy, manifest consistency, failed
+PDF writes and regeneration on resume. The compiled CLI fixture also opens the
+generated PDF. A report from the 11 existing USDC rows was rendered and visually
+reviewed, along with empty and long-selection cases, without making new RPC reads.
+
+### Loading Parquet
+
 The maintained [hyparquet-writer](https://github.com/hyparam/hyparquet-writer)
 writes flat, uncompressed Parquet parts. Every string in the dictionary is a
 BYTE_ARRAY annotated UTF8 (including decimal quantities and JSON accessList).
@@ -160,7 +227,10 @@ import pandas as pd
 
 run = Path("data/extractions/usdc-example")
 manifest = json.loads((run / "manifest.json").read_text())
-df = pd.concat([pd.read_parquet(run / part["file"]) for part in manifest["parts"]], ignore_index=True)
+files = manifest.get("outputs", {}).get("parquetFiles", [part["file"] for part in manifest["parts"]])
+if not files:
+    raise ValueError("Enable parquet in outputFormats and rerun the extractor")
+df = pd.concat([pd.read_parquet(run / filename) for filename in files], ignore_index=True)
 # Python int preserves exact values; do not convert via float64.
 for field in ["value", "gasLimit", "gasUsed", "nonce", "blockNumber", "transactionIndex", "blockTimestamp"]:
     df[field] = df[field].map(int)
@@ -174,6 +244,17 @@ fee strings can be parsed with `None if pd.isna(x) else int(x)`. ERC-20 amounts
 require contract-aware calldata decoding; they cannot be obtained by rescaling value.
 CSV export and automatic training are outside this extractor.
 
+To inspect JSON without a Parquet engine:
+
+```python
+import json
+from pathlib import Path
+
+rows = json.loads(Path("data/extractions/usdc-example/transactions.json").read_text())
+for row in rows:
+    print(row["transactionHash"], int(row["gasUsed"]))
+```
+
 ## Durable runs and resume
 
 Use one output directory per selection and one writer per run. Deterministic part
@@ -182,8 +263,9 @@ and atomically renamed before the checkpoint is file-synced and atomically repla
 Directory entries are also synced on POSIX; Windows cannot fsync directory handles,
 so guarantees target process interruption rather than hardware power-loss recovery.
 Temporary files end in .tmp. A crash before checkpoint replacement replays/replaces
-the same part. Checkpointed batch size is reused even if the CLI setting changes.
-Empty batches create schema-bearing zero-row parts and advance their block boundary.
+the batch output without advancing past it. Checkpointed batch size is reused even
+if the CLI setting changes. Empty batches create zero-row durable parts and advance
+their block boundary; exported empty Parquet parts retain the full schema.
 
 Rerun the same command to resume. A versioned fingerprint binds network, range,
 normalized recipient/selector/topic sets and schema. Endpoint, output-path and retry
@@ -199,9 +281,59 @@ Rows deduplicate within parts; repeated identities across committed batches fail
 manifest.json is reconciled from durable checkpointed parts after failures/resume,
 and records selection, schema, roles, physical columns, row counts, boundaries and
 completion. Uncheckpointed orphan parts are excluded; Python should read only the
-parts named in the manifest. Complete means every requested block is committed,
+Parquet files named in manifest.outputs.parquetFiles. Complete means every requested block is committed,
 including a valid zero-match run. Neither checkpoints nor manifests contain RPC URLs.
 Do not edit/check in generated run state. Custom configs and data/extractions are ignored.
+
+## Code style and architecture
+
+Prettier is installed as an exact development dependency. The root .prettierrc.json
+defines two spaces, single quotes, semicolons, trailing commas, parenthesized arrow
+parameters and a 100-column target. These formatting conventions are similar to
+the [Airbnb JavaScript guide](https://github.com/airbnb/javascript); this is a
+[Prettier](https://prettier.io/docs/options) configuration, not the full Airbnb
+ESLint ruleset. .editorconfig keeps editor whitespace consistent. Generated files,
+dependencies and OpenSpec planning artifacts are excluded from formatter scope.
+
+```sh
+npm --prefix extractor run format
+npm --prefix extractor run format:check
+npm --prefix extractor run check
+```
+
+`check` runs formatting verification, typecheck, build and the full test suite.
+It builds the compiled CLI before integration tests, preventing tests against stale
+compiled code. The CLI remains procedural composition of application services.
+
+| Component                                                      | Responsibility                                                                     |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| ConfigurationLoader                                            | Resolve YAML files relative to the invocation directory and validate configuration |
+| RpcClientFactory / RPCManager                                  | Create read-only viem adapters; isolate per-network health and fallback            |
+| TransactionScanner                                             | Scan inclusive batches and validate direct-call transaction/receipt identities     |
+| RowNormalizer                                                  | Convert matched observations into the selected network's version-1 rows            |
+| ExtractionRunner                                               | Coordinate scanning, normalization, durable commits, resume and outputs            |
+| CheckpointRepository                                           | Load/validate checkpoints; verify parts; commit a part before its checkpoint       |
+| FileStore                                                      | Adapt the storage interface to atomic local-file replacement                       |
+| SelectionIdentity / ManifestBuilder                            | Normalize selection identity and construct sanitized provenance                    |
+| OutputManager                                                  | Select registered presentation strategies and obtain their output filenames        |
+| ParquetOutputStrategy / JsonOutputStrategy / PdfOutputStrategy | Write each selected export through the same OutputStrategy contract                |
+| ParquetCodec / PdfReportRenderer                               | Encapsulate Parquet encoding and paginated PDF rendering                           |
+
+The presentation layer uses **Strategy**. OutputStrategy exposes a format,
+filenames(checkpoint) and write(context). Each concrete strategy owns its export
+logic. OutputManager accepts injected strategies, so a renderer can be replaced
+without modifying ExtractionRunner. Its default write order remains Parquet,
+JSON, PDF; the configured subset determines which strategies run.
+
+CheckpointRepository uses the same Parquet codec for already-durable Parquet parts;
+the Parquet strategy reuses them or exports internal JSON-state parts when Parquet
+is enabled later. Output choices, persisted formats, fingerprints and CLI arguments
+retain their existing behavior. Small stateless validation, ordering, statistics
+and serialization functions remain pure rather than becoming artificial classes.
+
+Tests use the class APIs directly and also exercise strategy replacement, omitted
+strategies, duplicate registration, injected codecs and renderer failure. They retain
+the existing precision, privacy, recovery and output-combination coverage.
 
 ## Verification commands
 
@@ -247,3 +379,9 @@ On this Windows host, sandboxed temporary checkpoint replacement returned EPERM.
 The same resume test and final full suite passed outside the sandbox. Network
 probes and the smoke run also used explicitly permitted network access. Offline
 unit tests passed inside the sandbox without live RPCs or private credentials.
+
+Configurable-output verification (2026-10-19) additionally covers all seven nonempty
+format combinations, the repository's explicit three-format default, JSON exactness
+and zero-row output, exports regenerated from old Parquet checkpoints or internal
+JSON state, format changes during incomplete runs, failed JSON writes, partial
+committed snapshots and real CLI JSON-only extraction against local fixtures.

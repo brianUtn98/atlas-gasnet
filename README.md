@@ -37,6 +37,17 @@ The bundled public RPC map needs no credentials. Edit the example selection to c
 npm --prefix extractor run extract -- --config config/extraction.yaml --rpcs config/rpcs.local.yaml
 ```
 
-Rerun the same command to resume. See [docs/extractor.md](docs/extractor.md) for configuration, public endpoint verification limits, data semantics, tests and checkpoint behavior. No training runs automatically.
+Output formats are selected in the extraction YAML. The repository example enables all three:
+
+```yaml
+outputFormats: [parquet, pdf, json]
+```
+
+For development, `npm --prefix extractor run format` applies Prettier and
+`npm --prefix extractor run check` verifies formatting, types, build and tests.
+The extractor uses output strategies and separate classes for scanning, normalization,
+checkpoint persistence and execution; see the architecture notes in docs/extractor.md.
+
+Parquet contains dataset batches, `transactions.json` contains all normalized rows, and `report.pdf` summarizes gas statistics, selection, grouped results and a transaction sample. Choose any nonempty subset. Rerun the same command to resume and generate the selected formats. See [docs/extractor.md](docs/extractor.md) for configuration, public endpoint verification limits, data semantics, tests and checkpoint behavior. No training runs automatically.
 
 See [docs/PROJECT.md](docs/PROJECT.md) for scope, methodology, and constraints.

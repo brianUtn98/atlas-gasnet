@@ -34,3 +34,4 @@ config/*.local.yaml
 config/*.local.yml
 data/extractions/
 *.tmp
+tmp/pdfs/
