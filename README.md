@@ -2,9 +2,9 @@
 
 Atlas GasNet is an academic proof of concept for predicting the gas consumed by an EVM transaction (`gasUsed`) before execution results are known.
 
-The project treats gas-consumption prediction as a supervised regression problem. The planned model is a PyTorch multi-layer perceptron (MLP) trained on transaction and receipt data collected from Ethereum Mainnet.
+The project treats gas-consumption prediction as a supervised regression problem. A PyTorch multi-layer perceptron (MLP) is trained on pre-execution transaction features collected from Ethereum Mainnet; receipts provide the target consumption only.
 
-## Planned architecture
+## Architecture
 
 - **Extraction:** TypeScript and [viem](https://viem.sh/) for bounded historical direct calls, receipt retrieval, validated RPC fallback, and resumable Parquet output.
 - **Data preparation:** Python with Pandas and NumPy.
@@ -47,8 +47,10 @@ The [offline training guide](docs/training.md) provides verified Parquet prepara
 the PyTorch MLP, median-by-function baseline, portable runs and explicit held-out
 evaluation, with deterministic temporary-Parquet tests and Colab commands.
 
-**Proof of Concept — extractor, dataset, training and evaluation pipeline implemented;
-model performance has not been established.**
+**Proof of Concept — training and final evaluation completed in Colab.**
+The [retained experiment](results/colab-2026-10-21/README.md) records a temporal-test
+MAE of 1,740.20 gas and a USDT-test MAE of 3,395.39 gas. These results concern the
+selected contracts and period; they do not establish accuracy for arbitrary calls.
 
 Extraction supports Ethereum Mainnet/Sepolia, Avalanche C-Chain/Fuji, and Polygon/Amoy. The first ML experiment remains scoped to Ethereum Mainnet; supporting testnets does not authorize pooling their data.
 

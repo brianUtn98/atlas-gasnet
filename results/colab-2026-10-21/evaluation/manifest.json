@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "kind": "evaluation",
+  "complete": true,
+  "binding": {
+    "run_manifest_sha256": "ff2dbb58f6ed2525917d0825c94042f65c4fe5dcb3d6d52e1d9790dce0389481",
+    "prepared_manifest_sha256": "f7977d26555b3bda1a1edd95bcb04503669e86b534c70c81b0a57610d9c9a848"
+  },
+  "pipeline_check_only": false,
+  "result_sha256": "0ff18d636c5582ea44810a88297cb2cd79ae8c164ac0fa95b9b8071351e77e8b",
+  "artifacts": {
+    "metrics.json": "43bb5a36bdc73df70015148c33594efd310bc574d64a7f4ff343ec76e8060a02",
+    "test.csv": "85a797301ee58fdcc49702e5a7a6f758122155c211d31ed5908fb4b47580b038",
+    "test.png": "eb3384dd0289aa9e379b0fa048942223a4de3806cf0704207c16b43fa23dbb77",
+    "unseen-contract.csv": "c74ed932f5cbb34939dcd9c19072993b834811e9a6ec117db71d9e1d5decf938",
+    "unseen-contract.png": "e4fae6e458b469c40d01fad8b1b5cfd286d25ca1657837e945b1dcc939f42ad3",
+    "validation.csv": "2d1416058ee5e0457063ec7ab2a29e622e392755657b3f92c5c9d0f273cb62b7",
+    "validation.png": "8efd59b04490f4b42bf5e752d2d14f33d8940588bc7be7ede2cc36df42bbc02f"
+  }
+}
