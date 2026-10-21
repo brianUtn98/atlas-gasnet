@@ -113,7 +113,11 @@ calls. JSON and decoded Parquet both contained 14 rows; the generated PDF loaded
 successfully with 3 pages. There were no selected WETH calls in that block, so this
 smoke run does not verify its end-to-end coverage. Generated smoke artifacts are
 local only, under `data/extractions/poc-verification/`. The four full collection
-runs have not been executed.
+runs subsequently completed under `data/extractions/poc-v3`: train 7,195,
+validation 1,373, temporal test 2,466 and unseen-contract test 4,903 rows.
+The immutable release records these 15,937 distinct transactions; see its
+[dataset card](../data/poc/v1/README.md). The separate 11-row USDC example overlaps
+training and is reserved for pipeline checks.
 
 Public endpoint limits and archival access can change. Extraction may take time
 because it reads blocks, receipts and optional balances. Batches contain 25 blocks
@@ -156,5 +160,5 @@ Diversifying contracts and functions can broaden the learned behavior, but does
 not guarantee improvement. The temporal test measures future calls to known
 contracts; the separate USDT test measures transfer to one unseen implementation
 of familiar interfaces. Neither establishes generalization to arbitrary contracts
-or functions absent from training. This change supplies collection configurations;
-it does not implement preprocessing, model training or evaluation.
+or functions absent from training. See the [training guide](training.md) for
+verified offline preparation, model training and explicit held-out evaluation.

@@ -19,6 +19,12 @@ This repository supports the Advanced Artificial Intelligence course at UTN FRBA
 
 ## Status
 
+For the academic submission, open [the Python notebook in Google Colab](https://colab.research.google.com/github/brianUtn98/atlas-gasnet/blob/work/notebooks/atlas_gasnet_colab.ipynb).
+It downloads the published data, prepares the inputs, trains the MLP and evaluates
+the temporal and USDT test sets. It does not execute the TypeScript extractor or
+require RPC credentials. The [Colab data archive](data/colab/README.md) contains
+the original Parquet inputs and their manifests.
+
 The [versioned PoC dataset](data/poc/v1/README.md) contains 15,937 real Ethereum
 transactions in four disjoint train/validation/test/unseen-contract partitions,
 with original JSON and PyTorch `.pt` tensors. Load it without RPC access:
@@ -37,7 +43,12 @@ the held-out evaluation policy. Verify with
 install `training/requirements-dev.txt`, then run `ruff format training` and
 `ruff check training`.
 
-**Proof of Concept — historical extractor and PyTorch dataset prepared; modeling planned.**
+The [offline training guide](docs/training.md) provides verified Parquet preparation,
+the PyTorch MLP, median-by-function baseline, portable runs and explicit held-out
+evaluation, with deterministic temporary-Parquet tests and Colab commands.
+
+**Proof of Concept — extractor, dataset, training and evaluation pipeline implemented;
+model performance has not been established.**
 
 Extraction supports Ethereum Mainnet/Sepolia, Avalanche C-Chain/Fuji, and Polygon/Amoy. The first ML experiment remains scoped to Ethereum Mainnet; supporting testnets does not authorize pooling their data.
 
