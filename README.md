@@ -47,6 +47,10 @@ The [offline training guide](docs/training.md) provides verified Parquet prepara
 the PyTorch MLP, median-by-function baseline, portable runs and explicit held-out
 evaluation, with deterministic temporary-Parquet tests and Colab commands.
 
+A separate [genetic-programming regressor](docs/symbolic-model.md) provides a
+standalone fit/predict interface and formula inspection for the second model;
+its experiment and new data collection are not yet implemented.
+
 **Proof of Concept — training and final evaluation completed in Colab.**
 The [retained experiment](results/colab-2026-10-21/README.md) records a temporal-test
 MAE of 1,740.20 gas and a USDT-test MAE of 3,395.39 gas. These results concern the
