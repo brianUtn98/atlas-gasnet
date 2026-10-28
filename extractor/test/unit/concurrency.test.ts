@@ -93,7 +93,15 @@ it('pipelines extraction with a global bound across probes, blocks, receipts and
   expect(parallel.active).toBe(0);
   expect(parallel.methods).toEqual(new Set(['chain', 'head', 'block', 'receipt', 'balance']));
   expect(parallel.rows).toEqual(serial.rows);
-  expect(parallel.metrics).toMatchObject({ requests: 42, inFlight: 0, peakInFlight: 3 });
+  expect(parallel.metrics).toMatchObject({
+    requests: 26,
+    inFlight: 0,
+    peakInFlight: 3,
+    probeRequests: 2,
+    blockRequests: 4,
+    receiptRequests: 12,
+    balanceRequests: 8,
+  });
   expect(parallel.result).toMatchObject({ complete: true, rowCount: 12, lastCommittedBlock: '12' });
   expect(
     parallel.events.some((event) => event.phase === 'scan' && Number(event.receiptsRead) > 0),

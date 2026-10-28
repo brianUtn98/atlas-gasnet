@@ -2,6 +2,8 @@ import { createPublicClient, http, numberToHex, type Hex } from 'viem';
 import { networks, type NetworkName } from './config.js';
 import { ConcurrencyLimiter } from './concurrency.js';
 import { silentProgress, type ProgressReporter } from './progress.js';
+import { AdaptiveConcurrency } from './adaptive-concurrency.js';
+import { RpcHttp } from './rpc-http.js';
 
 export interface RpcTransaction {
   hash: string;
@@ -38,6 +40,7 @@ export interface RpcReceipt {
   logs: { address: string; topics: string[] }[];
 }
 export interface ReadClient {
+  metrics?(): { httpRequests: number; httpBatches: number; batchFallbacks: number };
   getTokenBalance(contract: string, owner: string, height: bigint): Promise<bigint>;
   getChainId(): Promise<number>;
   getBlockNumber(): Promise<bigint>;
@@ -85,6 +88,11 @@ export class RpcClientFactory {
   constructor(
     private readonly network: NetworkName,
     private readonly timeout: number,
+    private readonly options: {
+      rpcBatchSize?: number;
+      rpcBatchWaitMs?: number;
+      progress?: ProgressReporter;
+    } = {},
   ) {}
 
   create(urls: string[]): ReadClient[] {
@@ -93,12 +101,34 @@ export class RpcClientFactory {
       assertData(typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value as string));
       return BigInt(value as string);
     };
-    return urls.map((url) => {
+    const batchSize = this.options.rpcBatchSize ?? 1;
+    const wait = this.options.rpcBatchWaitMs ?? 2;
+    if (
+      !Number.isInteger(batchSize) ||
+      batchSize < 1 ||
+      batchSize > 32 ||
+      !Number.isInteger(wait) ||
+      wait < 0 ||
+      wait > 100
+    )
+      throw new Error('Invalid RPC batch settings.');
+    return urls.map((url, index) => {
+      const transport = new RpcHttp(
+        index + 1,
+        this.options.progress ?? silentProgress,
+        () => new InvalidData(),
+      );
       const client = createPublicClient({
         chain: networks[network],
-        transport: http(url, { retryCount: 0, timeout }),
+        transport: http(url, {
+          retryCount: 0,
+          timeout,
+          fetchFn: transport.fetch,
+          batch: batchSize > 1 ? { batchSize, wait } : false,
+        }),
       });
       return {
+        metrics: () => transport.metrics(),
         getTokenBalance: async (contract, owner, height) => {
           const result = await client.request({
             method: 'eth_call',
@@ -170,6 +200,7 @@ export class RpcClientFactory {
 }
 interface ManagerOptions {
   rpcConcurrency?: number;
+  rpcAdaptiveConcurrency?: boolean;
   progress?: ProgressReporter;
   retries?: number;
   healthRefreshIntervalMs?: number;
@@ -177,11 +208,13 @@ interface ManagerOptions {
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
 }
+type ReadKind = 'probe' | 'block' | 'receipt' | 'balance';
 class EndpointCoolingDown extends Error {}
 
 function permanentFailure(error: unknown): boolean {
   let cause = error as { cause?: unknown; status?: number; code?: number } | undefined;
   for (let depth = 0; cause && depth < 5; depth++, cause = cause.cause as typeof cause) {
+    if (cause instanceof InvalidData) return true;
     if ([401, 403].includes(cause.status!) || [-32600, -32601, -32602].includes(cause.code!))
       return true;
   }
@@ -205,6 +238,19 @@ function retryAfter(error: unknown, now: number): number {
   }
   return 0;
 }
+function congested(error: unknown, now: number): boolean {
+  if (retryAfter(error, now) > 0) return true;
+  let cause = error as { cause?: unknown; status?: number; code?: number } | undefined;
+  for (let depth = 0; cause && depth < 5; depth++, cause = cause.cause as typeof cause)
+    if (cause.status === 429 || cause.code === 429 || cause.code === -32005) return true;
+  return false;
+}
+function timedOut(error: unknown): boolean {
+  let cause = error as { cause?: unknown; name?: string; message?: string } | undefined;
+  for (let depth = 0; cause && depth < 5; depth++, cause = cause.cause as typeof cause)
+    if (cause.name === 'TimeoutError' || cause.message === 'RPC timeout.') return true;
+  return false;
+}
 export class RPCManager implements ReadonlyRPC {
   private readonly observations: Observation[];
   private lastRefresh = -Infinity;
@@ -220,6 +266,14 @@ export class RPCManager implements ReadonlyRPC {
   private retryCount = 0;
   private inFlight = 0;
   private peakInFlight = 0;
+  private latencyMs = 0;
+  private completed = 0;
+  private queueWaitMs = 0;
+  private readonly adaptive?: AdaptiveConcurrency;
+  private readonly durations = new Map<
+    ReadKind,
+    { attempts: number; completed: number; duration: number }
+  >();
   constructor(
     private readonly network: NetworkName,
     private readonly clients: ReadClient[],
@@ -230,11 +284,13 @@ export class RPCManager implements ReadonlyRPC {
     this.timeoutMs = options.probeTimeoutMs ?? 5_000;
     this.now = options.now ?? Date.now;
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
-    const concurrency = options.rpcConcurrency ?? 4;
+    const concurrency = options.rpcConcurrency ?? 8;
     if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 32)
       throw new Error('Invalid RPC manager settings.');
     this.limiter = new ConcurrencyLimiter(concurrency);
     this.progress = options.progress ?? silentProgress;
+    if (options.rpcAdaptiveConcurrency ?? true)
+      this.adaptive = new AdaptiveConcurrency(this.limiter, concurrency, this.progress, this.now);
     if (
       !clients.length ||
       !Number.isInteger(this.retries) ||
@@ -258,15 +314,44 @@ export class RPCManager implements ReadonlyRPC {
     return this.observations.map((o) => ({ ...o }));
   }
   metrics() {
+    const transports = this.clients.map((client) => client.metrics?.());
     return {
       requests: this.requests,
       retries: this.retryCount,
       inFlight: this.inFlight,
       peakInFlight: this.peakInFlight,
+      concurrencyLimit: this.limiter.currentLimit,
+      averageLatencyMs: this.completed ? Math.round(this.latencyMs / this.completed) : 0,
+      queueWaitMs: Math.round(this.queueWaitMs),
+      httpRequests: transports.reduce((sum, value) => sum + (value?.httpRequests ?? 0), 0),
+      httpBatches: transports.reduce((sum, value) => sum + (value?.httpBatches ?? 0), 0),
+      batchFallbacks: transports.reduce((sum, value) => sum + (value?.batchFallbacks ?? 0), 0),
+      ...Object.fromEntries(
+        (['probe', 'block', 'receipt', 'balance'] as const).flatMap((kind) => {
+          const values = this.durations.get(kind);
+          return [
+            [`${kind}Requests`, values?.attempts ?? 0],
+            [
+              `${kind}AverageLatencyMs`,
+              values?.completed ? Math.round(values.duration / values.completed) : 0,
+            ],
+          ];
+        }),
+      ),
     };
   }
-  private async bounded<T>(work: () => Promise<T>, beforeStart: () => void = () => {}): Promise<T> {
-    const release = await this.limiter.acquire(this.timeoutMs);
+  private async bounded<T>(
+    work: () => Promise<T>,
+    beforeStart: () => void = () => {},
+    kind: ReadKind = 'probe',
+  ): Promise<T> {
+    const queuedAt = this.now();
+    let release: () => void;
+    try {
+      release = await this.limiter.acquire(this.timeoutMs);
+    } finally {
+      this.queueWaitMs += this.now() - queuedAt;
+    }
     try {
       beforeStart();
     } catch (error) {
@@ -276,10 +361,18 @@ export class RPCManager implements ReadonlyRPC {
     // A wrapper timeout must not release a permit while the transport is still
     // active. The HTTP transport has its own aborting timeout with the same limit.
     const pending = Promise.resolve().then(work);
+    const startedAt = this.now();
+    const duration = this.durations.get(kind) ?? { attempts: 0, completed: 0, duration: 0 };
+    this.durations.set(kind, duration);
+    duration.attempts++;
     this.requests++;
     this.inFlight++;
     this.peakInFlight = Math.max(this.peakInFlight, this.inFlight);
     const finished = () => {
+      duration.completed++;
+      duration.duration += this.now() - startedAt;
+      this.latencyMs += this.now() - startedAt;
+      this.completed++;
       this.inFlight--;
       release();
     };
@@ -296,7 +389,11 @@ export class RPCManager implements ReadonlyRPC {
       clearTimeout(timer);
     }
   }
-  private async execute<T>(observation: Observation, operation: () => Promise<T>): Promise<T> {
+  private async execute<T>(
+    observation: Observation,
+    operation: () => Promise<T>,
+    kind: ReadKind = 'probe',
+  ): Promise<T> {
     for (;;) {
       const delay = observation.cooldownUntil - this.now();
       if (delay > 0) {
@@ -307,13 +404,17 @@ export class RPCManager implements ReadonlyRPC {
         return await this.bounded(
           async () => {
             try {
-              return await operation();
+              const started = this.now();
+              const result = await operation();
+              this.adaptive?.succeeded(this.now() - started, this.timeoutMs);
+              return result;
             } catch (error) {
               // Publish provider cooldown before releasing the permit to queued calls.
               observation.cooldownUntil = Math.max(
                 observation.cooldownUntil,
                 this.now() + retryAfter(error, this.now()),
               );
+              if (congested(error, this.now())) this.adaptive?.congested('rate_limit');
               throw error;
             }
           },
@@ -321,8 +422,10 @@ export class RPCManager implements ReadonlyRPC {
             // Another request may establish Retry-After while this one is queued.
             if (this.now() < observation.cooldownUntil) throw new EndpointCoolingDown();
           },
+          kind,
         );
       } catch (error) {
+        if (timedOut(error)) this.adaptive?.congested('timeout');
         if (!(error instanceof EndpointCoolingDown)) throw error;
       }
     }
@@ -375,7 +478,7 @@ export class RPCManager implements ReadonlyRPC {
     operation: (client: ReadClient) => Promise<T>,
     validate: (value: T) => void,
     preserveProbeHealth = false,
-    operationName = 'block',
+    operationName: ReadKind = 'block',
   ): Promise<T> {
     const rejected = new Set<number>();
     for (let round = 0; round <= this.retries; round++) {
@@ -396,12 +499,19 @@ export class RPCManager implements ReadonlyRPC {
         rejected.add(o.index);
         for (let attempt = 0; attempt <= this.retries; attempt++) {
           try {
-            const value = await this.execute(o, () => operation(this.clients[o.index]));
-            try {
-              validate(value);
-            } catch {
-              throw new InvalidData();
-            }
+            const value = await this.execute(
+              o,
+              async () => {
+                const result = await operation(this.clients[o.index]);
+                try {
+                  validate(result);
+                } catch {
+                  throw new InvalidData();
+                }
+                return result;
+              },
+              operationName,
+            );
             o.healthy = true;
             if (o.cooldownUntil <= this.now()) o.cooldownUntil = 0;
             return value;

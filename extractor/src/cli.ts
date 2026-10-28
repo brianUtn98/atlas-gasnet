@@ -21,8 +21,13 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     fromBlock: String(selection.fromBlock),
     toBlock: String(selection.toBlock),
     rpcConcurrency: selection.rpcConcurrency,
+    rpcBatchSize: selection.rpcBatchSize,
+    rpcAdaptiveConcurrency: selection.rpcAdaptiveConcurrency ? 'enabled' : 'disabled',
   });
-  const clients = new RpcClientFactory(selection.network, selection.probeTimeoutMs).create(urls);
+  const clients = new RpcClientFactory(selection.network, selection.probeTimeoutMs, {
+    ...selection,
+    progress: progress.report,
+  }).create(urls);
   const rpc = new RPCManager(selection.network, clients, {
     ...selection,
     progress: progress.report,

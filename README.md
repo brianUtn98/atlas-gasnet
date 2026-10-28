@@ -92,8 +92,13 @@ chronological train/validation/test configurations for USDC and WETH9, plus a
 separate USDT unseen-contract test, all with Parquet, JSON and PDF output.
 
 Extraction prints timestamped progress for scanned blocks, receipts, enrichment
-and committed batches. `rpcConcurrency: 4` in each selection limits all in-flight
-RPC requests per process, including probes; accepted values are 1–32. Independent
+and committed batches. `rpcConcurrency: 8` in the PoC selections limits all in-flight
+logical RPC requests per process, including probes; accepted values are 1–32. Adaptive
+concurrency backs off on congestion and gradually recovers. These selections also
+use a bounded cache sharing identical balance reads. HTTP batching is optional
+(`rpcBatchSize`, default 1); size 3 is supported by the public PoC provider but
+measured slower than individual requests. Enabled batching automatically falls
+back if rejected. Independent
 reads overlap while checkpoint commits remain ordered. Restart the same command
 to resume with a different concurrency limit; see the
 [concurrency and progress guide](docs/extractor.md#concurrency-and-console-progress).

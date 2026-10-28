@@ -125,7 +125,9 @@ to limit repeated work after interruption. Rerun the identical command to resume
 if you change the selection, choose a new output directory. Check completeness
 before training; do not treat an interrupted extraction as the complete split.
 
-The selections use `rpcConcurrency: 4` for bounded parallel reads. Run the commands
+The selections use `rpcConcurrency: 8` as the maximum for adaptive parallel reads,
+`rpcBatchSize: 1` for the measured faster individual HTTP transport and a bounded
+per-batch balance cache. Optional batching can be enabled explicitly. Run the commands
 sequentially on the public endpoint: the limit is per process. Console logs show
 scanned and committed block progress, receipts/enriched rows, retries and elapsed
 time. Only committed block coverage counts toward `percent`; scanning can be ahead.

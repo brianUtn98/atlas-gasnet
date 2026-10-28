@@ -71,10 +71,69 @@ export function amountBalanceRatio(amount: bigint, balance: bigint): string | nu
 }
 
 export class Erc20BalanceEnricher {
+  private readonly balances = new Map<string, { value: Promise<bigint>; settled: boolean }>();
+  private hits = 0;
+  private misses = 0;
+
   constructor(
     private readonly selection: Selection,
     private readonly rpc: ReadonlyRPC,
   ) {}
+
+  metrics() {
+    return {
+      balanceCacheHits: this.hits,
+      balanceCacheMisses: this.misses,
+      balanceCacheEntries: this.balances.size,
+    };
+  }
+
+  private balance(
+    contract: string,
+    owner: string,
+    height: bigint,
+    inclusionHash: string,
+  ): Promise<bigint> {
+    const key = [
+      this.selection.network,
+      contract.toLowerCase(),
+      owner.toLowerCase(),
+      height,
+      inclusionHash.toLowerCase(),
+    ].join(':');
+    const previous = this.balances.get(key);
+    if (previous) {
+      this.hits++;
+      this.balances.delete(key);
+      this.balances.set(key, previous);
+      return previous.value;
+    }
+    this.misses++;
+    const capacity = this.selection.rpcBalanceCacheSize;
+    if (capacity > 0 && this.balances.size >= capacity) {
+      const oldest = [...this.balances].find(([, entry]) => entry.settled);
+      if (oldest) this.balances.delete(oldest[0]);
+    }
+    const entry = {
+      value: Promise.resolve().then(async () => {
+        const value = await this.rpc.getTokenBalance(contract, owner, height);
+        assertData(typeof value === 'bigint' && value >= 0n && value < 1n << 256n);
+        return value;
+      }),
+      settled: false,
+    };
+    if (this.balances.size < capacity) this.balances.set(key, entry);
+    // Never retain failed promises. In-flight entries are not evicted for capacity.
+    void entry.value.then(
+      () => {
+        entry.settled = true;
+      },
+      () => {
+        if (this.balances.get(key) === entry) this.balances.delete(key);
+      },
+    );
+    return entry.value;
+  }
 
   async enrich({ transaction: tx, block }: Match): Promise<BalanceState> {
     if (!this.selection.erc20BalanceEnrichment) return emptyBalanceState();
@@ -103,12 +162,12 @@ export class Erc20BalanceEnricher {
     if (block.number <= 0n) return failed('invalid_state_block');
     const height = block.number - 1n;
     try {
-      const senderRead = this.rpc.getTokenBalance(tx.to!, tx.from.toLowerCase(), height);
+      const senderRead = this.balance(tx.to!, tx.from.toLowerCase(), height, block.hash);
       const balances = await Promise.allSettled([
         senderRead,
         decoded.recipient === tx.from.toLowerCase()
           ? senderRead
-          : this.rpc.getTokenBalance(tx.to!, decoded.recipient, height),
+          : this.balance(tx.to!, decoded.recipient, height, block.hash),
       ]);
       const [sender, recipient] = balances.map((result) => {
         if (result.status === 'rejected') throw result.reason;

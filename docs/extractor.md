@@ -28,8 +28,12 @@ functions and topics combine with AND. Duplicate recipients are errors.
 RPC YAML maps uppercase network names to ordered, nonempty HTTP(S) URL lists.
 Only the selected network is required in custom files. Unknown networks, invalid
 URLs/addresses/ranges, duplicate URLs, and malformed YAML fail before extraction.
-Defaults: batchSize=100, rpcConcurrency=4 (allowed 1–32), retries=3 (allowed 0–10), healthRefreshIntervalMs=30000,
+Defaults: batchSize=100, rpcConcurrency=8 (allowed 1–32), retries=3 (allowed 0–10), healthRefreshIntervalMs=30000,
 probeTimeoutMs=5000. Batch size and timeouts must be positive bounded integers.
+Additional tuning defaults: rpcAdaptiveConcurrency=true, rpcBatchSize=1 (1–32),
+rpcBatchWaitMs=2 (0–100), rpcBalanceCacheSize=4096 (0–100000). The repository PoC
+selections keep batch size 1: live comparisons found individual HTTP requests
+faster on the current public provider. Size 3 is a supported opt-in alternative.
 
 ## Output formats
 
@@ -118,10 +122,14 @@ coverage nor correctness. There is no quorum or automatic reorganization repair.
 ## Concurrency and console progress
 
 ```yaml
-rpcConcurrency: 4
+rpcConcurrency: 8
+rpcAdaptiveConcurrency: true
+rpcBatchSize: 1
+rpcBatchWaitMs: 2
+rpcBalanceCacheSize: 4096
 ```
 
-The default is four in-flight RPC requests per process, across all providers and
+The default maximum is eight in-flight logical RPC requests per process, across all providers and
 operations: health probes, blocks, receipts and historical balances. Set an integer
 from 1 to 32; use 1 for sequential transport calls. Blocks are scanned concurrently
 inside a batch, selected transaction workers overlap receipt retrieval and
@@ -135,14 +143,61 @@ the physical request's permit until the transport settles; queued permit waits a
 also bounded. Worker pools drain in-flight work on failure before reconciliation.
 Checkpoints remain sequential and atomic, with rows ordered by block/transaction
 index regardless of response order. `batchSize` controls checkpoint boundaries,
-not HTTP request batching. JSON-RPC batch transport is not enabled by this setting.
+not HTTP request batching. `rpcBatchSize` separately enables optional HTTP batching.
 
 Changing `rpcConcurrency` does not change the selection fingerprint: rerun the
 same command to resume an existing checkpoint. Each process owns its own limit;
-four simultaneous CLI runs with concurrency 4 can create 16 RPC requests together.
+four simultaneous CLI runs with concurrency 8 can create 32 logical RPC requests together.
 Use one collection process at a time on the public PoC endpoint. Concurrency is a
-maximum in-flight count, not a requests-per-second quota; reduce it if the provider
-repeatedly rate-limits requests.
+maximum in-flight count, not a requests-per-second quota.
+
+With `rpcAdaptiveConcurrency: true`, HTTP/RPC rate-limit signals, structured
+Retry-After and manager timeouts halve the current limit (minimum 1), at most once
+per second. Completed requests taking at least 75% of the timeout also trigger a
+reduction. After at least 16 healthy completions and a one-second window, the limit
+recovers by one, up to `rpcConcurrency`. Active requests drain naturally when the
+limit falls; queued requests obey the reduced bound. Set the option to false for
+a fixed limit. `rpc_concurrency` logs explain reductions/recovery. HTTP 429/503
+headers survive even when the response contains a JSON-RPC error body.
+
+`rpcBatchSize: 1` disables HTTP batching and is the default for unspecified
+providers. Larger values coalesce reads for up to `rpcBatchWaitMs`; each logical
+call still retains its permit until the transport settles. Responses are matched
+by ID, validated for missing/duplicate/foreign IDs and checked per call. Partial
+RPC errors do not repeat successful calls. An explicit batch rejection or known
+provider batch-quota error automatically switches that endpoint to individual
+HTTP requests for the rest of the process. HTTP 429/503 and ordinary server
+errors keep their cooldown/retry behavior and do not trigger a request fan-out.
+Fallback requests remain within the logical concurrency bound and drain on failure.
+
+The public dRPC endpoint accepted batches of 3 on 2026-10-28 and rejected larger
+ones with HTTP 500 / provider error 31. Size 3 reduced HTTP envelopes but was
+slower than individual requests in the measured workload; PoC configs keep size 1.
+Provider limits can change; the fallback handles rejection, and custom providers
+can opt into their own verified size. Batching reduces HTTP envelopes, not
+necessarily billable requests or provider compute. Large block responses can
+also constrain practical batch size.
+
+Live verification on 2026-10-28 scanned blocks 19000000–19000009 and produced
+48 identical rows in all successful variants, including complete Parquet/JSON/PDF
+exports. The previous configuration (4 requests, cache off) took 7.64–7.78 seconds;
+the chosen 8-request configuration with cache and individual HTTP calls took
+4.47–4.57 seconds (about 1.7x faster in that comparison). With batch size 3,
+another pair took 4.37–4.94 seconds and 44–45 HTTP
+envelopes instead of 116. A larger batch rejected by the public provider fell
+back automatically with no lost rows or logical retries. These are short-range
+measurements, not a guaranteed speedup over an entire historical extraction.
+
+The ERC-20 enricher shares in-flight and completed balance reads inside each
+batch, keyed by network, token, owner, reference height and the validated inclusion
+block hash. A different block/hash never shares state. The cache stores exact
+uint256 balances, including zero, and evicts failed promises so subsequent rows
+can recover. `rpcBalanceCacheSize` bounds retained entries; settled least-recently
+used entries are evicted first. Pending entries are not evicted; new reads bypass
+the cache if all slots are pending. Zero disables caching. A new cache is created
+for each batch, so memory stays bounded and no state is shared across runs.
+`batch_committed` includes cache hits/misses/entries. These operational options
+do not change the selection fingerprint or the published dataset schema.
 
 The CLI prints timestamped progress with elapsed seconds. Intermediate scan,
 enrichment and retry/wait updates are throttled to approximately once per second.
@@ -151,7 +206,10 @@ printed immediately. `percent` describes durably committed block coverage;
 `scannedPercent` describes blocks read and may be ahead of committed progress.
 Rows/receipts within a batch are work in progress until `batch_committed`.
 `complete` is emitted after the selected outputs finish. The final `rpc_summary`
-includes attempted requests, retries and observed peak concurrency. Provider URLs,
+includes logical attempts, retries, observed peak/current concurrency, average
+request duration overall and per operation (probe/block/receipt/balance), cumulative queue wait, actual HTTP requests, batch envelopes
+and fallback counts. Duration excludes queue wait; the cumulative queue counter
+can exceed wall time because callers wait concurrently. Provider URLs,
 raw exception messages, credentials and transaction calldata are never logged.
 
 Example (illustrative counts and elapsed time):

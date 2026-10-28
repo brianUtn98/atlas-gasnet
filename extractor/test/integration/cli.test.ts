@@ -67,16 +67,19 @@ function payload(method: string, params: unknown[]) {
   }
   throw Error('Unexpected RPC method');
 }
-it('executes compiled help, custom RPC extraction and resume against local HTTP fixtures', async () => {
+it.each([1, 4])('compiled CLI and resume (batch=%i)', async (rpcBatchSize) => {
   const dir = await mkdtemp(join(tmpdir(), 'atlas-cli-'));
   const server = createServer(async (req, res) => {
     let body = '';
     for await (const chunk of req) body += chunk;
     const r = JSON.parse(body);
     res.setHeader('content-type', 'application/json');
-    res.end(
-      JSON.stringify({ jsonrpc: '2.0', id: r.id, result: payload(r.method, r.params ?? []) }),
-    );
+    const responses = (Array.isArray(r) ? r : [r]).map((job) => ({
+      jsonrpc: '2.0',
+      id: job.id,
+      result: payload(job.method, job.params ?? []),
+    }));
+    res.end(JSON.stringify(Array.isArray(r) ? responses.reverse() : responses[0]));
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   try {
@@ -92,6 +95,7 @@ it('executes compiled help, custom RPC extraction and resume against local HTTP 
         erc20BalanceEnrichment: true,
         outputDir: join(dir, 'data'),
         batchSize: 1,
+        rpcBatchSize,
         retries: 0,
       }),
     );

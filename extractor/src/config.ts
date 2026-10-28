@@ -30,6 +30,10 @@ export interface Selection {
   outputDir: string;
   batchSize: number;
   rpcConcurrency: number;
+  rpcAdaptiveConcurrency: boolean;
+  rpcBatchSize: number;
+  rpcBatchWaitMs: number;
+  rpcBalanceCacheSize: number;
   retries: number;
   healthRefreshIntervalMs: number;
   probeTimeoutMs: number;
@@ -126,7 +130,12 @@ export function validateSelection(raw: unknown, baseDirectory = process.cwd()): 
     outputDir: resolve(baseDirectory, v.outputDir),
     outputFormats: [...formats] as OutputFormat[],
     batchSize: positive(v.batchSize, 100),
-    rpcConcurrency: positive(v.rpcConcurrency, 4, 32),
+    rpcConcurrency: positive(v.rpcConcurrency, 8, 32),
+    rpcAdaptiveConcurrency:
+      v.rpcAdaptiveConcurrency === undefined ? true : boolean(v.rpcAdaptiveConcurrency),
+    rpcBatchSize: positive(v.rpcBatchSize, 1, 32),
+    rpcBatchWaitMs: positive(v.rpcBatchWaitMs, 2, 100, 0),
+    rpcBalanceCacheSize: positive(v.rpcBalanceCacheSize, 4096, 100000, 0),
     retries: positive(v.retries, 3, 10, 0),
     healthRefreshIntervalMs: positive(v.healthRefreshIntervalMs, 30_000),
     probeTimeoutMs: positive(v.probeTimeoutMs, 5_000),
@@ -157,6 +166,9 @@ export function parseYaml(text: string): unknown {
       for (const k of [
         'batchSize',
         'rpcConcurrency',
+        'rpcBatchSize',
+        'rpcBatchWaitMs',
+        'rpcBalanceCacheSize',
         'retries',
         'healthRefreshIntervalMs',
         'probeTimeoutMs',

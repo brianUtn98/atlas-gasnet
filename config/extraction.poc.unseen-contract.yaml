@@ -15,7 +15,11 @@ contracts:
 outputDir: data/extractions/poc-v3/unseen-contract
 outputFormats: [parquet, pdf, json]
 batchSize: 25
-rpcConcurrency: 4
+rpcConcurrency: 8
+rpcAdaptiveConcurrency: true
+rpcBatchSize: 1
+rpcBatchWaitMs: 2
+rpcBalanceCacheSize: 4096
 retries: 3
 healthRefreshIntervalMs: 30000
 probeTimeoutMs: 10000

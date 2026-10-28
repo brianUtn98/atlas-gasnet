@@ -113,6 +113,7 @@ export class ExtractionRunner {
           rows: seen.size,
           nextBlock: checkpoint.nextBlock,
           failedEnrichments: rows.filter((row) => row.stateEnrichmentStatus === 'failed').length,
+          ...enricher.metrics(),
         });
       }
 

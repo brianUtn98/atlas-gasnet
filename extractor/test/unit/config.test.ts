@@ -19,8 +19,8 @@ const raw = () => ({
   contracts: [{ address }],
 });
 describe('configuration', () => {
-  it('defaults to four concurrent RPC requests and accepts an explicit bounded limit', () => {
-    expect(validateSelection(raw()).rpcConcurrency).toBe(4);
+  it('defaults to eight concurrent RPC requests and accepts an explicit bounded limit', () => {
+    expect(validateSelection(raw()).rpcConcurrency).toBe(8);
     const parsed = parseYaml(JSON.stringify({ ...raw(), rpcConcurrency: 8 }));
     expect(validateSelection(parsed).rpcConcurrency).toBe(8);
   });

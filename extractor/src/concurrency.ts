@@ -3,12 +3,29 @@ export class ConcurrencyLimiter {
   private active = 0;
   private readonly queue: (() => void)[] = [];
 
-  constructor(private readonly limit: number) {
+  constructor(private limit: number) {
     if (!Number.isInteger(limit) || limit < 1) throw new Error('Invalid concurrency limit.');
   }
 
+  get currentLimit(): number {
+    return this.limit;
+  }
+
+  setLimit(limit: number): void {
+    if (!Number.isInteger(limit) || limit < 1) throw new Error('Invalid concurrency limit.');
+    this.limit = limit;
+    this.drain();
+  }
+
+  private drain(): void {
+    while (this.active < this.limit && this.queue.length) {
+      this.active++;
+      this.queue.shift()!();
+    }
+  }
+
   async acquire(timeoutMs?: number): Promise<() => void> {
-    if (this.active >= this.limit) {
+    if (this.active >= this.limit || this.queue.length) {
       await new Promise<void>((resolve, reject) => {
         const ready = () => {
           clearTimeout(timer);
@@ -18,7 +35,8 @@ export class ConcurrencyLimiter {
           timeoutMs === undefined
             ? undefined
             : setTimeout(() => {
-                this.queue.splice(this.queue.indexOf(ready), 1);
+                const index = this.queue.indexOf(ready);
+                if (index >= 0) this.queue.splice(index, 1);
                 reject(new Error('RPC queue timeout.'));
               }, timeoutMs);
         this.queue.push(ready);
@@ -30,9 +48,8 @@ export class ConcurrencyLimiter {
     return () => {
       if (released) return;
       released = true;
-      const next = this.queue.shift();
-      if (next) next();
-      else this.active--;
+      this.active--;
+      this.drain();
     };
   }
 }
