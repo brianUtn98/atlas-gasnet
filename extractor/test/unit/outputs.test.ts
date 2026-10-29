@@ -134,13 +134,18 @@ it('changes storage for unfinished batches when Parquet is disabled, then export
   });
   await expect(
     new ExtractionRunner(
-      selection({ batchRetries: 0, batchSize: 1, outputFormats: ['parquet'] }),
+      selection({
+        continueOnError: false,
+        batchRetries: 0,
+        batchSize: 1,
+        outputFormats: ['parquet'],
+      }),
       rpc(client),
       store,
     ).run(),
   ).rejects.toThrow('exhausted');
   await new ExtractionRunner(
-    selection({ batchRetries: 0, outputFormats: ['json'] }),
+    selection({ continueOnError: false, batchRetries: 0, outputFormats: ['json'] }),
     rpc(),
     store,
   ).run();
@@ -149,7 +154,7 @@ it('changes storage for unfinished batches when Parquet is disabled, then export
   expect(store.files.has('batch-10-10.checkpoint')).toBe(true);
   expect(store.json('transactions.json')).toHaveLength(2);
   await new ExtractionRunner(
-    selection({ batchRetries: 0, outputFormats: ['parquet'] }),
+    selection({ continueOnError: false, batchRetries: 0, outputFormats: ['parquet'] }),
     rpc(),
     store,
   ).run();
@@ -181,7 +186,7 @@ it('publishes only committed JSON rows on interrupted extraction, then replaces 
   });
   await expect(
     new ExtractionRunner(
-      selection({ batchRetries: 0, batchSize: 1, outputFormats: ['json'] }),
+      selection({ continueOnError: false, batchRetries: 0, batchSize: 1, outputFormats: ['json'] }),
       rpc(client),
       store,
     ).run(),
@@ -189,7 +194,7 @@ it('publishes only committed JSON rows on interrupted extraction, then replaces 
   expect(store.json('transactions.json')).toHaveLength(1);
   expect(store.json('manifest.json').complete).toBe(false);
   await new ExtractionRunner(
-    selection({ batchRetries: 0, outputFormats: ['json'] }),
+    selection({ continueOnError: false, batchRetries: 0, outputFormats: ['json'] }),
     rpc(),
     store,
   ).run();

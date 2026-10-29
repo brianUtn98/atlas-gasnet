@@ -67,119 +67,142 @@ function payload(method: string, params: unknown[]) {
   }
   throw Error('Unexpected RPC method');
 }
-it.each([1, 4])('compiled CLI and resume (batch=%i)', async (rpcBatchSize) => {
-  const dir = await mkdtemp(join(tmpdir(), 'atlas-cli-'));
-  const server = createServer(async (req, res) => {
-    let body = '';
-    for await (const chunk of req) body += chunk;
-    const r = JSON.parse(body);
-    res.setHeader('content-type', 'application/json');
-    const responses = (Array.isArray(r) ? r : [r]).map((job) => ({
-      jsonrpc: '2.0',
-      id: job.id,
-      result: payload(job.method, job.params ?? []),
-    }));
-    res.end(JSON.stringify(Array.isArray(r) ? responses.reverse() : responses[0]));
-  });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  try {
-    const port = (server.address() as { port: number }).port;
-    await writeFile(join(dir, 'rpcs.local.yaml'), `ETHEREUM:\n - http://127.0.0.1:${port}\n`);
-    await writeFile(
-      join(dir, 'selection.yaml'),
-      JSON.stringify({
-        network: 'ETHEREUM',
-        fromBlock: '9',
-        toBlock: '10',
-        contracts: [{ address, erc20: true }],
-        erc20BalanceEnrichment: true,
-        outputDir: join(dir, 'data'),
-        batchSize: 1,
-        rpcBatchSize,
-        retries: 0,
-      }),
-    );
-    const cli = join(root, 'extractor', 'dist', 'cli.js');
-    expect((await execute(process.execPath, [cli, '--help'], { cwd: root })).stdout).toContain(
-      '--config',
-    );
-    const args = [
-      cli,
-      '--config',
-      join(dir, 'selection.yaml'),
-      '--rpcs',
-      join(dir, 'rpcs.local.yaml'),
-    ];
-    for (let i = 0; i < 2; i++)
-      expect((await execute(process.execPath, args, { cwd: root })).stdout).toContain(
-        '2 rows in 2 parts',
+it.each([
+  { rpcBatchSize: 1, partial: false },
+  { rpcBatchSize: 4, partial: false },
+  { rpcBatchSize: 1, partial: true },
+])(
+  'compiled CLI and resume (batch=$rpcBatchSize, partial=$partial)',
+  async ({ rpcBatchSize, partial }) => {
+    let failReceipt = partial;
+    const dir = await mkdtemp(join(tmpdir(), 'atlas-cli-'));
+    const server = createServer(async (req, res) => {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      const r = JSON.parse(body);
+      res.setHeader('content-type', 'application/json');
+      const responses = (Array.isArray(r) ? r : [r]).map((job) => ({
+        jsonrpc: '2.0',
+        id: job.id,
+        result:
+          failReceipt && job.method === 'eth_getTransactionReceipt' && job.params[0] === hash(900)
+            ? null
+            : payload(job.method, job.params ?? []),
+      }));
+      res.end(JSON.stringify(Array.isArray(r) ? responses.reverse() : responses[0]));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const port = (server.address() as { port: number }).port;
+      await writeFile(join(dir, 'rpcs.local.yaml'), `ETHEREUM:\n - http://127.0.0.1:${port}\n`);
+      await writeFile(
+        join(dir, 'selection.yaml'),
+        JSON.stringify({
+          network: 'ETHEREUM',
+          fromBlock: '9',
+          toBlock: '10',
+          contracts: [{ address, erc20: true }],
+          erc20BalanceEnrichment: true,
+          outputDir: join(dir, 'data'),
+          batchSize: 1,
+          rpcBatchSize,
+          retries: 0,
+        }),
       );
-    const manifest = JSON.parse(await readFile(join(dir, 'data', 'manifest.json'), 'utf8'));
-    expect(manifest).toMatchObject({ complete: true, rowCount: 2 });
-    expect(JSON.parse(await readFile(join(dir, 'data', 'transactions.json'), 'utf8'))).toHaveLength(
-      2,
-    );
-    expect(manifest.outputs.formats).toEqual(['parquet', 'pdf', 'json']);
-    const report = await pdfText(await readFile(join(dir, 'data', 'report.pdf')));
-    expect(report).toContain('Status: COMPLETE');
-    expect(report).toContain('Reverted: 2');
-    expect(JSON.stringify(manifest)).not.toContain('127.0.0.1');
-    const bytes = await readFile(join(dir, 'data', manifest.parts[0].file));
-    const rows = await parquetReadObjects({
-      file: bytes.buffer.slice(
-        bytes.byteOffset,
-        bytes.byteOffset + bytes.byteLength,
-      ) as ArrayBuffer,
-    });
-    expect(rows[0]).toMatchObject({
-      nonce: '9007199254740993',
-      value: '9007199254740993',
-      receiptStatus: 'reverted',
-      stateEnrichmentStatus: 'complete',
-      stateBlockNumber: '8',
-      senderTokenBalanceBeforeBlock: '9007199254740993',
-      recipientTokenBalanceBeforeBlock: '9007199254740993',
-      senderBalanceEqualsAmount: 1,
-      recipientBalanceWasZero: 0,
-      schemaVersion: '3',
-      tokenAmount: '9007199254740993',
-      isZeroAmount: 0,
-      isSelfTransfer: 1,
-      senderHasEnoughBalance: 1,
-      amountToSenderBalanceRatio: '1/1',
-    });
-    await writeFile(
-      join(dir, 'json-only.yaml'),
-      JSON.stringify({
-        network: 'ETHEREUM',
-        fromBlock: '9',
-        toBlock: '10',
-        contracts: [{ address }],
-        outputDir: join(dir, 'json-only'),
-        outputFormats: ['json'],
-        retries: 0,
-      }),
-    );
-    const jsonRun = await execute(
-      process.execPath,
-      [cli, '--config', join(dir, 'json-only.yaml'), '--rpcs', join(dir, 'rpcs.local.yaml')],
-      { cwd: root },
-    );
-    expect(jsonRun.stdout).toContain('Output formats: json');
-    expect(
-      JSON.parse(await readFile(join(dir, 'json-only', 'transactions.json'), 'utf8')),
-    ).toHaveLength(2);
-    expect(
-      (await readdir(join(dir, 'json-only'))).some(
-        (name) => name.endsWith('.pdf') || name.endsWith('.parquet'),
-      ),
-    ).toBe(false);
-    await expect(execute(process.execPath, [cli, '--unknown'], { cwd: root })).rejects.toThrow();
-  } finally {
-    await new Promise<void>((resolve, reject) => server.close((e) => (e ? reject(e) : resolve())));
-    await rm(dir, { recursive: true, force: true });
-  }
-});
+      const cli = join(root, 'extractor', 'dist', 'cli.js');
+      expect((await execute(process.execPath, [cli, '--help'], { cwd: root })).stdout).toContain(
+        '--config',
+      );
+      const args = [
+        cli,
+        '--config',
+        join(dir, 'selection.yaml'),
+        '--rpcs',
+        join(dir, 'rpcs.local.yaml'),
+      ];
+      for (let i = 0; i < 2; i++) {
+        const result = await execute(process.execPath, args, { cwd: root });
+        if (partial && i === 0) {
+          expect(result.stdout).toContain('finished with errors');
+          const state = JSON.parse(await readFile(join(dir, 'data', 'manifest.json'), 'utf8'));
+          expect(state).toMatchObject({
+            complete: false,
+            scanComplete: true,
+            errorCount: 1,
+            rowCount: 1,
+          });
+          failReceipt = false;
+        } else expect(result.stdout).toContain('2 rows in 2 parts');
+      }
+      const manifest = JSON.parse(await readFile(join(dir, 'data', 'manifest.json'), 'utf8'));
+      expect(manifest).toMatchObject({ complete: true, rowCount: 2 });
+      expect(
+        JSON.parse(await readFile(join(dir, 'data', 'transactions.json'), 'utf8')),
+      ).toHaveLength(2);
+      expect(manifest.outputs.formats).toEqual(['parquet', 'pdf', 'json']);
+      const report = await pdfText(await readFile(join(dir, 'data', 'report.pdf')));
+      expect(report).toContain('Status: COMPLETE');
+      expect(report).toContain('Reverted: 2');
+      expect(JSON.stringify(manifest)).not.toContain('127.0.0.1');
+      const bytes = await readFile(join(dir, 'data', manifest.outputs.parquetFiles[0]));
+      const rows = await parquetReadObjects({
+        file: bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ) as ArrayBuffer,
+      });
+      expect(rows[0]).toMatchObject({
+        nonce: '9007199254740993',
+        value: '9007199254740993',
+        receiptStatus: 'reverted',
+        stateEnrichmentStatus: 'complete',
+        stateBlockNumber: '8',
+        senderTokenBalanceBeforeBlock: '9007199254740993',
+        recipientTokenBalanceBeforeBlock: '9007199254740993',
+        senderBalanceEqualsAmount: 1,
+        recipientBalanceWasZero: 0,
+        schemaVersion: '3',
+        tokenAmount: '9007199254740993',
+        isZeroAmount: 0,
+        isSelfTransfer: 1,
+        senderHasEnoughBalance: 1,
+        amountToSenderBalanceRatio: '1/1',
+      });
+      await writeFile(
+        join(dir, 'json-only.yaml'),
+        JSON.stringify({
+          network: 'ETHEREUM',
+          fromBlock: '9',
+          toBlock: '10',
+          contracts: [{ address }],
+          outputDir: join(dir, 'json-only'),
+          outputFormats: ['json'],
+          retries: 0,
+        }),
+      );
+      const jsonRun = await execute(
+        process.execPath,
+        [cli, '--config', join(dir, 'json-only.yaml'), '--rpcs', join(dir, 'rpcs.local.yaml')],
+        { cwd: root },
+      );
+      expect(jsonRun.stdout).toContain('Output formats: json');
+      expect(
+        JSON.parse(await readFile(join(dir, 'json-only', 'transactions.json'), 'utf8')),
+      ).toHaveLength(2);
+      expect(
+        (await readdir(join(dir, 'json-only'))).some(
+          (name) => name.endsWith('.pdf') || name.endsWith('.parquet'),
+        ),
+      ).toBe(false);
+      await expect(execute(process.execPath, [cli, '--unknown'], { cwd: root })).rejects.toThrow();
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((e) => (e ? reject(e) : resolve())),
+      );
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+);
 it('runs bundled configuration through the real viem adapter with mocked HTTP, offline', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'atlas-bundled-'));
   const fetchMock = vi.fn(async (_url: unknown, init?: RequestInit) => {

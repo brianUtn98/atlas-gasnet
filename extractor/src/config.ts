@@ -36,6 +36,7 @@ export interface Selection {
   rpcBalanceCacheSize: number;
   retries: number;
   batchRetries: number;
+  continueOnError: boolean;
   batchRetryDelayMs: number;
   healthRefreshIntervalMs: number;
   probeTimeoutMs: number;
@@ -140,6 +141,7 @@ export function validateSelection(raw: unknown, baseDirectory = process.cwd()): 
     rpcBalanceCacheSize: positive(v.rpcBalanceCacheSize, 4096, 100000, 0),
     retries: positive(v.retries, 3, 10, 0),
     batchRetries: positive(v.batchRetries, 3, 10, 0),
+    continueOnError: boolean(v.continueOnError ?? true),
     batchRetryDelayMs: positive(v.batchRetryDelayMs, 5000, 60000),
     healthRefreshIntervalMs: positive(v.healthRefreshIntervalMs, 30_000),
     probeTimeoutMs: positive(v.probeTimeoutMs, 5_000),

@@ -44,6 +44,9 @@ export function reportManifest(rows: Row[], complete = true): ExtractionManifest
     lastCommittedBlock: complete ? '10' : '9',
     lastCommittedBlockHash: hash(complete ? 10 : 9),
     complete,
+    scanComplete: complete,
+    errorCount: 0,
+    errorsFile: 'errors.json',
     eventSelectionBias: null,
   };
 }

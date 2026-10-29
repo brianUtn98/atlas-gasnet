@@ -12,11 +12,22 @@ export interface NormalizedSelection {
   contracts: ContractSelection[];
 }
 
+export interface ExtractionIssue {
+  operation: 'block' | 'receipt';
+  blockNumber: string;
+  transactionHash?: string;
+  blockHash?: string;
+  occurredAt: string;
+  details: Record<string, string | number>;
+}
+
 export interface Part {
   file: string;
   fromBlock: string;
   toBlock: string;
-  lastBlockHash: string;
+  lastBlockHash: string | null;
+  anchorBlockNumber?: string;
+  errors?: ExtractionIssue[];
   rows: number;
   sha256: string;
 }
@@ -61,6 +72,9 @@ export interface ExtractionManifest {
   lastCommittedBlock: string | null;
   lastCommittedBlockHash: string | null;
   complete: boolean;
+  scanComplete: boolean;
+  errorCount: number;
+  errorsFile: string;
   eventSelectionBias: string | null;
 }
 

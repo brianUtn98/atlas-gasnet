@@ -9,7 +9,7 @@ import { OutputManager } from './output/manager.js';
 import { RowNormalizer, rowKey, type Row } from './rows.js';
 import { assertData, type ReadonlyRPC } from './rpc.js';
 import { encodeJson } from './serialization.js';
-import type { Checkpoint, ExtractionManifest } from './state.js';
+import type { Checkpoint, ExtractionManifest, ExtractionIssue } from './state.js';
 import type { Store } from './store.js';
 import { silentProgress, type ProgressReporter } from './progress.js';
 
@@ -54,8 +54,25 @@ export class ExtractionRunner {
         rows: seen.size,
       });
 
-      while (BigInt(checkpoint.nextBlock) <= this.selection.toBlock) {
-        const range = this.repository.nextRange(checkpoint);
+      const pendingParts = checkpoint.parts.filter((part) => part.errors?.length);
+      while (pendingParts.length || BigInt(checkpoint.nextBlock) <= this.selection.toBlock) {
+        const replacement = pendingParts.shift();
+        const range = replacement
+          ? { from: BigInt(replacement.fromBlock), to: BigInt(replacement.toBlock) }
+          : this.repository.nextRange(checkpoint);
+        const previousRows = replacement ? await this.repository.readPart(replacement) : [];
+        const previousKeys = new Set(previousRows.map(rowKey));
+        const anchors = new Map(
+          previousRows.map((row) => [String(row.blockNumber), String(row.blockHash)]),
+        );
+        for (const issue of replacement?.errors ?? []) {
+          if (issue.blockHash) anchors.set(issue.blockNumber, issue.blockHash);
+        }
+        if (replacement?.lastBlockHash)
+          anchors.set(
+            replacement.anchorBlockNumber ?? replacement.toBlock,
+            replacement.lastBlockHash,
+          );
         const committedBlocks = range.from - this.selection.fromBlock;
         this.progress({
           phase: 'batch_start',
@@ -65,9 +82,10 @@ export class ExtractionRunner {
           committedBlocks: String(committedBlocks),
           totalBlocks: String(totalBlocks),
         });
-        const { rows, enricher, batch } = await recoverRpc(
+        const { rows, enricher, batch, errors } = await recoverRpc(
           async () => {
             const rows: Row[] = [];
+            const errors: ExtractionIssue[] = [];
             const enricher = new Erc20BalanceEnricher(this.selection, this.rpc);
             let scanned = 0;
             let receipts = 0;
@@ -87,6 +105,19 @@ export class ExtractionRunner {
                   committedBlocks: String(committedBlocks),
                 });
               },
+              this.selection.continueOnError
+                ? async (issue) => {
+                    errors.push(issue);
+                    this.progress({
+                      phase: 'item_failed',
+                      operation: issue.operation,
+                      blockNumber: issue.blockNumber,
+                      transactionHash: issue.transactionHash ?? '',
+                      ...issue.details,
+                    });
+                  }
+                : undefined,
+              anchors,
             );
             const batch = await scanner.scan(range.from, range.to, async (match) => {
               rows.push({ ...this.normalizer.normalize(match), ...(await enricher.enrich(match)) });
@@ -100,7 +131,23 @@ export class ExtractionRunner {
                 percent: percent(committedBlocks),
               });
             });
-            return { rows, enricher, batch };
+            const merged = new Map(previousRows.map((row) => [rowKey(row), row]));
+            for (const row of rows) {
+              if (!merged.has(rowKey(row))) merged.set(rowKey(row), row);
+            }
+            const hashes = new Set(
+              [...merged.values()].map((row) => String(row.transactionHash).toLowerCase()),
+            );
+            return {
+              rows: [...merged.values()],
+              enricher,
+              batch,
+              errors: errors.filter(
+                (issue) =>
+                  issue.operation !== 'receipt' ||
+                  !hashes.has(issue.transactionHash!.toLowerCase()),
+              ),
+            };
           },
           this.selection,
           this.progress,
@@ -111,15 +158,18 @@ export class ExtractionRunner {
           },
         );
         for (const row of rows) {
-          if (seen.has(rowKey(row))) {
+          if (seen.has(rowKey(row)) && !previousKeys.has(rowKey(row))) {
             throw new Error('Transaction identity repeated across committed batches.');
           }
         }
         checkpoint = await this.repository.commitBatch(
           checkpoint,
           range,
-          batch.lastBlock.hash,
+          batch.lastBlock?.hash ?? replacement?.lastBlockHash ?? null,
           rows,
+          errors,
+          batch.lastBlock ? String(batch.lastBlock.number) : replacement?.anchorBlockNumber,
+          replacement,
         );
         for (const row of rows) {
           seen.set(rowKey(row), row);
@@ -134,6 +184,10 @@ export class ExtractionRunner {
           rows: seen.size,
           nextBlock: checkpoint.nextBlock,
           failedEnrichments: rows.filter((row) => row.stateEnrichmentStatus === 'failed').length,
+          pendingErrors: checkpoint.parts.reduce(
+            (count, part) => count + (part.errors?.length ?? 0),
+            0,
+          ),
           ...enricher.metrics(),
         });
       }
@@ -145,11 +199,12 @@ export class ExtractionRunner {
       });
       const result = await this.publishOutputs(checkpoint, [...seen.values()]);
       this.progress({
-        phase: 'complete',
+        phase: result.complete ? 'complete' : 'complete_with_errors',
         committedBlocks: String(totalBlocks),
         totalBlocks: String(totalBlocks),
         percent: 100,
         rows: seen.size,
+        pendingErrors: result.errorCount,
       });
       return result;
     } catch (error) {
@@ -160,14 +215,17 @@ export class ExtractionRunner {
   }
 
   private async verifyResumeAnchor(checkpoint: Checkpoint): Promise<void> {
-    const last = checkpoint.parts.at(-1);
-    if (!last) {
+    const last = [...checkpoint.parts].reverse().find((part) => part.lastBlockHash !== null);
+    if (!last || !last.lastBlockHash) {
       return;
     }
     try {
-      const block = await this.rpc.getBlock(BigInt(last.toBlock), (candidate) => {
-        assertData(candidate.hash.toLowerCase() === last.lastBlockHash);
-      });
+      const block = await this.rpc.getBlock(
+        BigInt(last.anchorBlockNumber ?? last.toBlock),
+        (candidate) => {
+          assertData(candidate.hash.toLowerCase() === last.lastBlockHash);
+        },
+      );
       assertData(block.hash.toLowerCase() === last.lastBlockHash);
     } catch (error) {
       if (
@@ -181,6 +239,24 @@ export class ExtractionRunner {
   }
 
   private async publishManifest(checkpoint: Checkpoint): Promise<void> {
+    const errors = checkpoint.parts
+      .flatMap((part) => part.errors ?? [])
+      .sort((a, b) =>
+        BigInt(a.blockNumber) < BigInt(b.blockNumber)
+          ? -1
+          : BigInt(a.blockNumber) > BigInt(b.blockNumber)
+            ? 1
+            : (a.transactionHash ?? '').localeCompare(b.transactionHash ?? ''),
+      );
+    await this.store.commit(
+      'errors.json',
+      encodeJson({
+        version: 1,
+        fingerprint: checkpoint.fingerprint,
+        pendingCount: errors.length,
+        errors,
+      }),
+    );
     await this.store.commit('manifest.json', encodeJson(this.manifests.build(checkpoint)));
   }
 

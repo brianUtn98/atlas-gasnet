@@ -4,7 +4,13 @@ import { SelectionIdentity } from './identity.js';
 import { orderedRows, ParquetCodec } from './parquet.js';
 import { rowKey, schemaVersion, type Row } from './rows.js';
 import { decodeJson, digest, encodeJson } from './serialization.js';
-import { batchFiles, type BatchRange, type Checkpoint, type Part } from './state.js';
+import {
+  batchFiles,
+  type BatchRange,
+  type Checkpoint,
+  type Part,
+  type ExtractionIssue,
+} from './state.js';
 import type { Store } from './store.js';
 
 /** Repository for durable batches and their checkpoint, independent of presentation. */
@@ -94,30 +100,39 @@ export class CheckpointRepository {
   async commitBatch(
     checkpoint: Checkpoint,
     range: BatchRange,
-    lastBlockHash: string,
+    lastBlockHash: string | null,
     rows: Row[],
+    errors: ExtractionIssue[] = [],
+    anchorBlockNumber?: string,
+    replacement?: Part,
   ): Promise<Checkpoint> {
-    const useParquet = this.selection.outputFormats.includes('parquet');
+    const useParquet = !replacement && this.selection.outputFormats.includes('parquet');
     const sorted = orderedRows(rows);
     this.codec.columns(sorted);
     const encoded = useParquet
       ? this.codec.encode(sorted)
       : { rows: sorted, bytes: encodeJson(sorted) };
     const part: Part = {
-      file: useParquet
-        ? batchFiles.parquet(range.from, range.to)
-        : batchFiles.state(range.from, range.to),
+      file: replacement
+        ? `batch-${range.from}-${range.to}-${digest(encoded.bytes)}.checkpoint`
+        : useParquet
+          ? batchFiles.parquet(range.from, range.to)
+          : batchFiles.state(range.from, range.to),
       fromBlock: String(range.from),
       toBlock: String(range.to),
-      lastBlockHash: lastBlockHash.toLowerCase(),
+      lastBlockHash: lastBlockHash?.toLowerCase() ?? null,
+      ...(anchorBlockNumber ? { anchorBlockNumber } : {}),
+      ...(errors.length ? { errors } : {}),
       rows: encoded.rows.length,
       sha256: digest(encoded.bytes),
     };
     await this.store.commit(part.file, encoded.bytes);
     const next: Checkpoint = {
       ...checkpoint,
-      nextBlock: String(range.to + 1n),
-      parts: [...checkpoint.parts, part],
+      nextBlock: replacement ? checkpoint.nextBlock : String(range.to + 1n),
+      parts: replacement
+        ? checkpoint.parts.map((previous) => (previous.file === replacement.file ? part : previous))
+        : [...checkpoint.parts, part],
     };
     await this.save(next);
     return next;
@@ -153,14 +168,43 @@ export class CheckpointRepository {
     for (const part of checkpoint.parts) {
       const end = this.batchEnd(next, checkpoint.batchSize);
       const validFile =
-        part.file === batchFiles.state(next, end) || part.file === batchFiles.parquet(next, end);
+        part.file === batchFiles.state(next, end) ||
+        part.file === batchFiles.parquet(next, end) ||
+        part.file === `batch-${next}-${end}-${part.sha256}.checkpoint`;
+      const errorsValid =
+        part.errors === undefined ||
+        (Array.isArray(part.errors) &&
+          part.errors.every(
+            (issue) =>
+              issue &&
+              ['block', 'receipt'].includes(issue.operation) &&
+              /^\d+$/.test(issue.blockNumber) &&
+              BigInt(issue.blockNumber) >= next &&
+              BigInt(issue.blockNumber) <= end &&
+              (issue.operation !== 'receipt' ||
+                /^0x[0-9a-fA-F]{64}$/.test(issue.transactionHash ?? '')) &&
+              (issue.blockHash === undefined || /^0x[0-9a-fA-F]{64}$/.test(issue.blockHash)) &&
+              typeof issue.occurredAt === 'string' &&
+              issue.details &&
+              typeof issue.details === 'object',
+          ));
+      const anchor = part.anchorBlockNumber ?? part.toBlock;
+      const anchorValid =
+        part.lastBlockHash === null
+          ? part.errors?.filter((issue) => issue.operation === 'block').length ===
+            Number(end - next + 1n)
+          : /^0x[0-9a-f]{64}$/.test(part.lastBlockHash) &&
+            /^\d+$/.test(anchor) &&
+            BigInt(anchor) >= next &&
+            BigInt(anchor) <= end;
       if (
         part.fromBlock !== String(next) ||
         part.toBlock !== String(end) ||
         !validFile ||
         !Number.isSafeInteger(part.rows) ||
         part.rows < 0 ||
-        !/^0x[0-9a-f]{64}$/.test(part.lastBlockHash) ||
+        !errorsValid ||
+        !anchorValid ||
         !/^[0-9a-f]{64}$/.test(part.sha256) ||
         next > this.selection.toBlock
       ) {

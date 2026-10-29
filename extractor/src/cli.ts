@@ -42,7 +42,13 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       new OutputManager(),
       progress.report,
     ).run();
-    console.log(`Extraction complete: ${result.rowCount} rows in ${result.parts.length} parts.`);
+    console.log(
+      `Extraction ${result.complete ? 'complete' : 'finished with errors'}: ${result.rowCount} rows in ${result.parts.length} parts.`,
+    );
+    if (result.errorCount)
+      console.log(
+        `Pending errors: ${result.errorCount}. See errors.json in the output directory; rerun to repair affected batches.`,
+      );
     console.log(
       `Output formats: ${selection.outputFormats.join(', ')} (in the configured output directory).`,
     );

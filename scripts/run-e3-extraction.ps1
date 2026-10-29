@@ -52,8 +52,11 @@ try {
             'data/extractions/e3-v1-pilot'
         } else { "data/extractions/e3-v1/$stage" }
         $manifest = Get-Content -LiteralPath "$output/manifest.json" -Raw | ConvertFrom-Json
-        if ($manifest.complete -ne $true) {
+        if ($manifest.complete -ne $true -and $manifest.scanComplete -ne $true) {
             throw "Incomplete manifest for $stage; later stages will not run."
+        }
+        if ($manifest.errorCount -gt 0) {
+            Write-Warning "$stage finished scanning with $($manifest.errorCount) pending errors. See $output/errors.json. Continuing to the next stage."
         }
         Write-Host "Completed $stage`: $($manifest.rowCount) rows."
     }

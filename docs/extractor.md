@@ -121,7 +121,34 @@ Head freshness is a routing heuristic: independently validate historical block,
 transaction and receipt identities. A recent high head proves neither historical
 coverage nor correctness. There is no quorum or automatic reorganization repair.
 
-Exhausted RPC reads trigger up to `batchRetries=3` additional batch attempts with
+By default, `continueOnError=true`: after an individual block or receipt exhausts
+its RPC retry/fallback budget, record it and continue processing the remaining
+items and subsequent batches. Successful rows are committed even when neighbors
+fail. Each batch publishes `errors.json` with the current `pendingCount` and an
+`errors` array containing operation, block, receipt transaction hash when known,
+timestamp and safe diagnostic details. The checkpoint embeds the pending errors,
+so the diagnostic file can be regenerated after an interruption.
+
+The manifest exposes `scanComplete` (the range was attempted), `errorCount` and
+`errorsFile`. `complete` becomes true only when the entire range has been attempted
+and no block/receipt errors remain. JSON/Parquet/PDF exports contain all valid rows;
+the PDF marks pending extraction errors explicitly. Finishing with pending errors
+returns exit code 0 and a `complete_with_errors` progress event. The E3 runner warns
+and continues with later stages. This does not change the existing optional
+balance-enrichment policy: failed balance reads retain the row with null features
+and their existing enrichment status/reason.
+
+Rerunning the same command replays batches with pending errors once, then scans
+any unattempted batches. Fully successful batches are not scanned again, except
+for the existing resume-anchor check. Repairs merge recovered rows by identity
+without dropping earlier valid rows, regenerate exports and remove resolved
+entries from `errors.json`. Partial batch repairs use new immutable internal
+`.checkpoint` files before atomically switching the checkpoint pointer, so a
+failed repair cannot corrupt the earlier committed source. Preserve these files;
+use `manifest.outputs.parquetFiles` to locate the public Parquet exports.
+
+Set `continueOnError: false` to restore strict failure handling. In strict mode,
+exhausted RPC reads trigger up to `batchRetries=3` additional batch attempts with
 `batchRetryDelayMs=5000` exponential delays, capped at 60000 ms per delay. Set
 `batchRetries: 0` to disable this layer. Each attempt discards uncommitted rows,
 drains the failed scan's active workers and starts fresh at the same batch boundary.
@@ -132,7 +159,9 @@ Configuration, storage/output failures and exhausted authorization/unsupported
 request errors do not receive batch retries. After recovery is exhausted, the CLI
 exits with code 2 for recoverable RPC exhaustion, or code 1 for other failures.
 `rpc_exhausted`, `batch_retry` and `failed` events retain safe failure details;
-`rpc_summary` is emitted even when extraction fails.
+`rpc_summary` is emitted even when extraction fails. These fatal errors still stop
+the run in continue mode, as does a changed hash for previously committed data.
+An isolated data-read failure no longer changes probe health for unrelated reads.
 
 The E3 PowerShell runner also retries exit code 2 from the durable checkpoint,
 up to `-MaxStageRetries 2`, waiting `-RetryDelaySeconds 30` between restarts.

@@ -491,7 +491,7 @@ export class RPCManager implements ReadonlyRPC {
     height: bigint,
     operation: (client: ReadClient) => Promise<T>,
     validate: (value: T) => void,
-    preserveProbeHealth = false,
+    preserveProbeHealth = true,
     operationName: ReadKind = 'block',
     context: Record<string, string | number> = {},
   ): Promise<T> {
@@ -639,7 +639,7 @@ export class RPCManager implements ReadonlyRPC {
         );
         validate(r);
       },
-      false,
+      true,
       'receipt',
       { transactionHash: hash },
     );

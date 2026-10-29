@@ -29,6 +29,15 @@ the original response which was never recorded.
 
 ## Recovery changes
 
+The subsequent continue-on-error update makes per-item continuation the default:
+blocks/receipts that exhaust their retries go to `errors.json`, successful rows
+are saved, and the scan continues through the remaining batches and E3 stages.
+The manifest distinguishes `scanComplete: true` from `complete: true` and exposes
+the number of pending errors. Repeating the command repairs affected batches
+without replaying already successful batches. `continueOnError: false` restores
+the strict whole-batch recovery behavior described below. See
+[the extractor guide](extractor.md) for current defaults and checkpoint details.
+
 - Null receipts receive bounded request retries rather than immediate invalid-data
   rejection. Other inconsistent responses still fail validation and can fall back
   to the next configured RPC.

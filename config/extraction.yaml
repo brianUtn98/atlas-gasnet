@@ -21,6 +21,7 @@ rpcBatchWaitMs: 2
 rpcBalanceCacheSize: 4096
 retries: 3
 batchRetries: 3
+continueOnError: true
 batchRetryDelayMs: 5000
 healthRefreshIntervalMs: 30000
 probeTimeoutMs: 5000

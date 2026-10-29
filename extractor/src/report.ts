@@ -223,7 +223,7 @@ export class PdfReportRenderer implements ReportRenderer {
   private renderOverview(layout: ReportLayout, manifest: ExtractionManifest): void {
     layout.title('Historical transaction dataset');
     layout.text(
-      `Status: ${manifest.complete ? 'COMPLETE' : 'INCOMPLETE - unfinished blocks remain'}`,
+      `Status: ${manifest.complete ? 'COMPLETE' : manifest.scanComplete ? 'INCOMPLETE - pending extraction errors' : 'INCOMPLETE - unfinished blocks remain'}`,
     );
     layout.text(
       `Network: ${manifest.selection.network} | Schema: ${manifest.schemaVersion} | Transactions: ${manifest.rowCount} | Parts: ${manifest.parts.length}`,

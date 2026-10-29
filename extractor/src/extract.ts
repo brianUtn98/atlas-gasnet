@@ -1,7 +1,10 @@
 import type { ContractSelection, Selection } from './config.js';
 import { ConcurrencyLimiter, mapConcurrent } from './concurrency.js';
+import { RpcReadError, failureDetails, rpcFailure } from './rpc-errors.js';
+import type { ExtractionIssue } from './state.js';
 import {
   assertData,
+  InvalidData,
   validHash,
   validateBlock,
   type ReadonlyRPC,
@@ -118,6 +121,8 @@ export class TransactionScanner {
     private readonly rpc: ReadonlyRPC,
     private readonly selection: Selection,
     private readonly progress: (blocks: number, receipts: number) => void = () => {},
+    private readonly onError?: (issue: ExtractionIssue) => Promise<void>,
+    private readonly anchors = new Map<string, string>(),
   ) {
     this.contracts = new Map(selection.contracts.map((contract) => [contract.address, contract]));
     this.transactionWorkers = new ConcurrencyLimiter(selection.rpcConcurrency);
@@ -127,7 +132,7 @@ export class TransactionScanner {
     from = this.selection.fromBlock,
     to = this.selection.toBlock,
     onMatch?: (match: Match) => Promise<void>,
-  ): Promise<{ matches: Match[]; lastBlock: RpcBlock }> {
+  ): Promise<{ matches: Match[]; lastBlock: RpcBlock | null }> {
     const { rpc, selection, contracts } = this;
     if (from > to || from < selection.fromBlock || to > selection.toBlock)
       throw new Error('Invalid batch range.');
@@ -136,8 +141,18 @@ export class TransactionScanner {
     let blocksRead = 0;
     let receiptsRead = 0;
     const batches = await mapConcurrent(heights, selection.rpcConcurrency, async (height) => {
-      const block = await rpc.getBlock(height, (b) => validateFullBlock(b, height));
-      validateFullBlock(block, height);
+      let block: RpcBlock;
+      try {
+        block = await rpc.getBlock(height, (b) => validateFullBlock(b, height));
+        validateFullBlock(block, height);
+      } catch (error) {
+        await this.record(error, height, 'block');
+        this.progress(++blocksRead, receiptsRead);
+        return { block: null, matches: [] as Match[] };
+      }
+      const anchor = this.anchors.get(String(height));
+      if (anchor && block.hash.toLowerCase() !== anchor.toLowerCase())
+        throw new Error('Previously committed block hash changed; recovery stopped.');
       this.progress(++blocksRead, receiptsRead);
       const selected = block.transactions.filter((tx) => {
         const contract = tx.to ? contracts.get(tx.to.toLowerCase()) : undefined;
@@ -152,10 +167,14 @@ export class TransactionScanner {
         const release = await this.transactionWorkers.acquire();
         try {
           const contract = contracts.get(tx.to!.toLowerCase())!;
-          const receipt = await rpc.getReceipt(tx.hash, height, (r) =>
-            validateReceipt(r, tx, block),
-          );
-          validateReceipt(receipt, tx, block);
+          let receipt: RpcReceipt;
+          try {
+            receipt = await rpc.getReceipt(tx.hash, height, (r) => validateReceipt(r, tx, block));
+            validateReceipt(receipt, tx, block);
+          } catch (error) {
+            await this.record(error, height, 'receipt', tx.hash, block.hash);
+            return undefined;
+          }
           this.progress(blocksRead, ++receiptsRead);
           if (
             contract.eventTopics &&
@@ -175,6 +194,31 @@ export class TransactionScanner {
       });
       return { block, matches: matches.filter((match): match is Match => match !== undefined) };
     });
-    return { matches: batches.flatMap((batch) => batch.matches), lastBlock: batches.at(-1)!.block };
+    return {
+      matches: batches.flatMap((batch) => batch.matches),
+      lastBlock: [...batches].reverse().find((batch) => batch.block !== null)?.block ?? null,
+    };
+  }
+
+  private async record(
+    error: unknown,
+    height: bigint,
+    operation: 'block' | 'receipt',
+    transactionHash?: string,
+    blockHash?: string,
+  ): Promise<void> {
+    if (
+      !this.onError ||
+      !(error instanceof InvalidData || (error instanceof RpcReadError && error.retryable))
+    )
+      throw error;
+    await this.onError({
+      operation,
+      blockNumber: String(height),
+      ...(transactionHash ? { transactionHash } : {}),
+      ...(blockHash ? { blockHash } : {}),
+      occurredAt: new Date().toISOString(),
+      details: error instanceof InvalidData ? rpcFailure(error) : failureDetails(error),
+    });
   }
 }

@@ -7,6 +7,58 @@ import { expect, it } from 'vitest';
 
 const execute = promisify(execFile);
 
+it.skipIf(process.platform !== 'win32')(
+  'PowerShell continues all remaining stages after a stage with pending errors',
+  async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'atlas-e3-partial-'));
+    try {
+      await mkdir(join(dir, 'scripts'));
+      await copyFile(
+        new URL('../../../scripts/run-e3-extraction.ps1', import.meta.url),
+        join(dir, 'scripts/run.ps1'),
+      );
+      for (const stage of ['train', 'validation', 'test', 'unseen-contract']) {
+        const output = join(dir, 'data/extractions/e3-v1', stage);
+        await mkdir(output, { recursive: true });
+        await writeFile(
+          join(output, 'manifest.json'),
+          JSON.stringify({
+            complete: stage !== 'train',
+            scanComplete: true,
+            errorCount: stage === 'train' ? 1 : 0,
+            rowCount: 7,
+          }),
+        );
+      }
+      await writeFile(
+        join(dir, 'npm.cmd'),
+        '@echo off\r\necho called >> "%~dp0calls.txt"\r\nexit /b 0\r\n',
+      );
+      const result = await execute(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          join(dir, 'scripts/run.ps1'),
+          '-Phase',
+          'Full',
+        ],
+        { cwd: dir, env: { ...process.env, PATH: `${dir};${process.env.PATH}` } },
+      );
+      expect(result.stdout).toContain('pending errors');
+      expect(result.stdout).toContain('Completed unseen-contract');
+      expect((await readFile(join(dir, 'calls.txt'), 'utf8')).trim().split(/\r?\n/)).toHaveLength(
+        4,
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  20000,
+);
+
 it.skipIf(process.platform !== 'win32').each([1, 2])(
   'PowerShell logs native stderr and handles exit %i correctly',
   async (exitCode) => {

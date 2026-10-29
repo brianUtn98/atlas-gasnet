@@ -47,7 +47,12 @@ describe('durable run state', () => {
     });
     const progress = vi.fn();
     const result = await new ExtractionRunner(
-      selection({ batchSize: 1, batchRetryDelayMs: 1, outputFormats: ['json', 'parquet'] }),
+      selection({
+        batchSize: 1,
+        batchRetryDelayMs: 1,
+        continueOnError: false,
+        outputFormats: ['json', 'parquet'],
+      }),
       rpc(client),
       store,
       undefined,
@@ -191,7 +196,11 @@ describe('durable run state', () => {
       return block(h);
     });
     await expect(
-      new ExtractionRunner(selection({ batchRetries: 0, batchSize: 1 }), rpc(client), store).run(),
+      new ExtractionRunner(
+        selection({ continueOnError: false, batchRetries: 0, batchSize: 1 }),
+        rpc(client),
+        store,
+      ).run(),
     ).rejects.toThrow('exhausted');
     expect(store.json('checkpoint.json').nextBlock).toBe('10');
     expect(store.json('manifest.json')).toMatchObject({
@@ -202,11 +211,21 @@ describe('durable run state', () => {
     expect(JSON.stringify(store.json('manifest.json'))).not.toMatch(/https:|private|secret/);
     const saved = store.files.get('checkpoint.json');
     await expect(
-      new ExtractionRunner(selection({ batchRetries: 0 }), rpc(client), store).run(),
+      new ExtractionRunner(
+        selection({ continueOnError: false, batchRetries: 0 }),
+        rpc(client),
+        store,
+      ).run(),
     ).rejects.toThrow();
     expect(store.files.get('checkpoint.json')).toEqual(saved);
     expect(
-      (await new ExtractionRunner(selection({ batchRetries: 0 }), rpc(), store).run()).rowCount,
+      (
+        await new ExtractionRunner(
+          selection({ continueOnError: false, batchRetries: 0 }),
+          rpc(),
+          store,
+        ).run()
+      ).rowCount,
     ).toBe(2);
   });
   it('advances empty batches and includes all roles without endpoint metadata', async () => {
