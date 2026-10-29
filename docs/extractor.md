@@ -109,8 +109,10 @@ ERC-20 balance reads only.
 Reads retry transient errors up to retries times with 250 ms exponential backoff,
 capped at 30 seconds; structured Retry-After seconds/dates are honored up to that
 cap. Exhaustion or invalid historical data falls back in head order. An endpoint
-rejected for a read is never revisited in that read. All failures abort unresolved
-work; diagnostics use network names and endpoint indexes, never provider errors.
+rejected for a read is never revisited in that read. A null historical receipt is
+treated as temporarily unavailable and uses the normal request retry budget.
+Diagnostics include operation, height, transaction hash for receipts, endpoint
+index, validation reason and structured HTTP/RPC codes, without provider messages.
 Structured authorization (401/403) and invalid/unsupported request errors
 (-32600/-32601/-32602) skip retries for that endpoint/read. Provider Retry-After
 cooldowns apply to queued calls too, including historical state requests. An
@@ -118,6 +120,27 @@ already in-flight request cannot be recalled by a later cooldown response.
 Head freshness is a routing heuristic: independently validate historical block,
 transaction and receipt identities. A recent high head proves neither historical
 coverage nor correctness. There is no quorum or automatic reorganization repair.
+
+Exhausted RPC reads trigger up to `batchRetries=3` additional batch attempts with
+`batchRetryDelayMs=5000` exponential delays, capped at 60000 ms per delay. Set
+`batchRetries: 0` to disable this layer. Each attempt discards uncommitted rows,
+drains the failed scan's active workers and starts fresh at the same batch boundary.
+Earlier committed batches are preserved; rows and receipts are never skipped.
+These settings do not change checkpoint identity. Resume-anchor transport failures
+use the same recovery policy; inconsistent anchor hashes stop the run.
+Configuration, storage/output failures and exhausted authorization/unsupported
+request errors do not receive batch retries. After recovery is exhausted, the CLI
+exits with code 2 for recoverable RPC exhaustion, or code 1 for other failures.
+`rpc_exhausted`, `batch_retry` and `failed` events retain safe failure details;
+`rpc_summary` is emitted even when extraction fails.
+
+The E3 PowerShell runner also retries exit code 2 from the durable checkpoint,
+up to `-MaxStageRetries 2`, waiting `-RetryDelaySeconds 30` between restarts.
+Native stderr is logged without bypassing exit-code handling on Windows
+PowerShell. For example, resume only the unfinished stage with
+`.\scripts\run-e3-extraction.ps1 -Phase Full -Stages unseen-contract`.
+See [the E3 failure investigation](extraction-recovery.md) for the observed failure
+and validation evidence.
 
 ## Concurrency and console progress
 

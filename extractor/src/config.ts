@@ -35,6 +35,8 @@ export interface Selection {
   rpcBatchWaitMs: number;
   rpcBalanceCacheSize: number;
   retries: number;
+  batchRetries: number;
+  batchRetryDelayMs: number;
   healthRefreshIntervalMs: number;
   probeTimeoutMs: number;
   outputFormats: OutputFormat[];
@@ -137,6 +139,8 @@ export function validateSelection(raw: unknown, baseDirectory = process.cwd()): 
     rpcBatchWaitMs: positive(v.rpcBatchWaitMs, 2, 100, 0),
     rpcBalanceCacheSize: positive(v.rpcBalanceCacheSize, 4096, 100000, 0),
     retries: positive(v.retries, 3, 10, 0),
+    batchRetries: positive(v.batchRetries, 3, 10, 0),
+    batchRetryDelayMs: positive(v.batchRetryDelayMs, 5000, 60000),
     healthRefreshIntervalMs: positive(v.healthRefreshIntervalMs, 30_000),
     probeTimeoutMs: positive(v.probeTimeoutMs, 5_000),
   };
@@ -170,6 +174,8 @@ export function parseYaml(text: string): unknown {
         'rpcBatchWaitMs',
         'rpcBalanceCacheSize',
         'retries',
+        'batchRetries',
+        'batchRetryDelayMs',
         'healthRefreshIntervalMs',
         'probeTimeoutMs',
       ]) {

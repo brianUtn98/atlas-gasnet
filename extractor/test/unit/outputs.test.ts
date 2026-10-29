@@ -134,17 +134,25 @@ it('changes storage for unfinished batches when Parquet is disabled, then export
   });
   await expect(
     new ExtractionRunner(
-      selection({ batchSize: 1, outputFormats: ['parquet'] }),
+      selection({ batchRetries: 0, batchSize: 1, outputFormats: ['parquet'] }),
       rpc(client),
       store,
     ).run(),
   ).rejects.toThrow('exhausted');
-  await new ExtractionRunner(selection({ outputFormats: ['json'] }), rpc(), store).run();
+  await new ExtractionRunner(
+    selection({ batchRetries: 0, outputFormats: ['json'] }),
+    rpc(),
+    store,
+  ).run();
   expect(store.files.has('part-9-9.parquet')).toBe(true);
   expect(store.files.has('part-10-10.parquet')).toBe(false);
   expect(store.files.has('batch-10-10.checkpoint')).toBe(true);
   expect(store.json('transactions.json')).toHaveLength(2);
-  await new ExtractionRunner(selection({ outputFormats: ['parquet'] }), rpc(), store).run();
+  await new ExtractionRunner(
+    selection({ batchRetries: 0, outputFormats: ['parquet'] }),
+    rpc(),
+    store,
+  ).run();
   expect(store.json('manifest.json').outputs.parquetFiles).toEqual([
     'part-9-9.parquet',
     'part-10-10.parquet',
@@ -173,14 +181,18 @@ it('publishes only committed JSON rows on interrupted extraction, then replaces 
   });
   await expect(
     new ExtractionRunner(
-      selection({ batchSize: 1, outputFormats: ['json'] }),
+      selection({ batchRetries: 0, batchSize: 1, outputFormats: ['json'] }),
       rpc(client),
       store,
     ).run(),
   ).rejects.toThrow('exhausted');
   expect(store.json('transactions.json')).toHaveLength(1);
   expect(store.json('manifest.json').complete).toBe(false);
-  await new ExtractionRunner(selection({ outputFormats: ['json'] }), rpc(), store).run();
+  await new ExtractionRunner(
+    selection({ batchRetries: 0, outputFormats: ['json'] }),
+    rpc(),
+    store,
+  ).run();
   expect(store.json('transactions.json')).toHaveLength(2);
   expect(store.json('manifest.json').complete).toBe(true);
 });

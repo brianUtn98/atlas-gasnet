@@ -1,3 +1,5 @@
+import { recoverRpc } from './recovery.js';
+import { failureDetails, RpcReadError } from './rpc-errors.js';
 import { CheckpointRepository } from './checkpoint.js';
 import { Erc20BalanceEnricher } from './enrichment.js';
 import type { Selection } from './config.js';
@@ -40,7 +42,10 @@ export class ExtractionRunner {
     const percent = (count: bigint) => Number((count * 10000n) / totalBlocks) / 100;
     try {
       const seen = await this.repository.readCommittedRows(checkpoint);
-      await this.verifyResumeAnchor(checkpoint);
+      await recoverRpc(() => this.verifyResumeAnchor(checkpoint), this.selection, this.progress, {
+        nextBlock: checkpoint.nextBlock,
+        operation: 'resume_anchor',
+      });
       await this.publishManifest(checkpoint);
       this.progress({
         phase: 'resume',
@@ -60,35 +65,51 @@ export class ExtractionRunner {
           committedBlocks: String(committedBlocks),
           totalBlocks: String(totalBlocks),
         });
-        const rows: Row[] = [];
-        const enricher = new Erc20BalanceEnricher(this.selection, this.rpc);
-        let scanned = 0;
-        let receipts = 0;
-        const scanner = new TransactionScanner(this.rpc, this.selection, (blocks, readReceipts) => {
-          scanned = blocks;
-          receipts = readReceipts;
-          this.progress({
-            phase: 'scan',
-            scannedBlocks: String(committedBlocks + BigInt(scanned)),
-            totalBlocks: String(totalBlocks),
-            percent: percent(committedBlocks),
-            scannedPercent: percent(committedBlocks + BigInt(scanned)),
-            receiptsRead: receipts,
-            committedBlocks: String(committedBlocks),
-          });
-        });
-        const batch = await scanner.scan(range.from, range.to, async (match) => {
-          rows.push({ ...this.normalizer.normalize(match), ...(await enricher.enrich(match)) });
-          this.progress({
-            phase: 'enrich',
-            processedRows: rows.length,
-            receiptsRead: receipts,
-            scannedBlocks: String(committedBlocks + BigInt(scanned)),
-            totalBlocks: String(totalBlocks),
-            committedBlocks: String(committedBlocks),
-            percent: percent(committedBlocks),
-          });
-        });
+        const { rows, enricher, batch } = await recoverRpc(
+          async () => {
+            const rows: Row[] = [];
+            const enricher = new Erc20BalanceEnricher(this.selection, this.rpc);
+            let scanned = 0;
+            let receipts = 0;
+            const scanner = new TransactionScanner(
+              this.rpc,
+              this.selection,
+              (blocks, readReceipts) => {
+                scanned = blocks;
+                receipts = readReceipts;
+                this.progress({
+                  phase: 'scan',
+                  scannedBlocks: String(committedBlocks + BigInt(scanned)),
+                  totalBlocks: String(totalBlocks),
+                  percent: percent(committedBlocks),
+                  scannedPercent: percent(committedBlocks + BigInt(scanned)),
+                  receiptsRead: receipts,
+                  committedBlocks: String(committedBlocks),
+                });
+              },
+            );
+            const batch = await scanner.scan(range.from, range.to, async (match) => {
+              rows.push({ ...this.normalizer.normalize(match), ...(await enricher.enrich(match)) });
+              this.progress({
+                phase: 'enrich',
+                processedRows: rows.length,
+                receiptsRead: receipts,
+                scannedBlocks: String(committedBlocks + BigInt(scanned)),
+                totalBlocks: String(totalBlocks),
+                committedBlocks: String(committedBlocks),
+                percent: percent(committedBlocks),
+              });
+            });
+            return { rows, enricher, batch };
+          },
+          this.selection,
+          this.progress,
+          {
+            fromBlock: String(range.from),
+            toBlock: String(range.to),
+            nextBlock: checkpoint.nextBlock,
+          },
+        );
         for (const row of rows) {
           if (seen.has(rowKey(row))) {
             throw new Error('Transaction identity repeated across committed batches.');
@@ -132,7 +153,7 @@ export class ExtractionRunner {
       });
       return result;
     } catch (error) {
-      this.progress({ phase: 'failed', nextBlock: checkpoint.nextBlock });
+      this.progress({ phase: 'failed', nextBlock: checkpoint.nextBlock, ...failureDetails(error) });
       await this.reconcile();
       throw error;
     }
@@ -148,7 +169,13 @@ export class ExtractionRunner {
         assertData(candidate.hash.toLowerCase() === last.lastBlockHash);
       });
       assertData(block.hash.toLowerCase() === last.lastBlockHash);
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof RpcReadError &&
+        error.retryable &&
+        error.details.category !== 'invalid_response'
+      )
+        throw error;
       throw new Error('Resume block hash changed or could not be verified; progress unchanged.');
     }
   }

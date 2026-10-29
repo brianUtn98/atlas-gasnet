@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ExtractionRunner, SelectionIdentity, type Store } from '../../src/persistence.js';
-import { RPCManager } from '../../src/rpc.js';
+import { RPCManager, InvalidData } from '../../src/rpc.js';
 import { features, initialPredictors } from '../../src/rows.js';
 import { address, other, hash, selection, fixtureClient, block } from '../fixtures.js';
 export class MemoryStore implements Store {
@@ -23,6 +23,48 @@ export class MemoryStore implements Store {
 }
 const rpc = (c = fixtureClient()) => new RPCManager('ETHEREUM', [c], { retries: 0 });
 describe('durable run state', () => {
+  it('replays only the failed batch after an invalid receipt without duplicate rows', async () => {
+    const store = new MemoryStore(),
+      client = fixtureClient();
+    let failed = false;
+    vi.mocked(client.getReceipt).mockImplementation(async (hash) => {
+      if (hash.endsWith('3e8') && !failed) {
+        failed = true;
+        throw new InvalidData('receipt_identity');
+      }
+      const height = BigInt(parseInt(hash.slice(2), 16) / 100);
+      return {
+        transactionHash: hash,
+        blockHash: block(height).hash,
+        blockNumber: height,
+        transactionIndex: 0,
+        from: other,
+        to: address,
+        gasUsed: 25000n,
+        status: 'success',
+        logs: [],
+      };
+    });
+    const progress = vi.fn();
+    const result = await new ExtractionRunner(
+      selection({ batchSize: 1, batchRetryDelayMs: 1, outputFormats: ['json', 'parquet'] }),
+      rpc(client),
+      store,
+      undefined,
+      progress,
+    ).run();
+    expect(result).toMatchObject({ complete: true, rowCount: 2, nextBlock: '11' });
+    expect(result.parts).toHaveLength(2);
+    expect(store.json('transactions.json')).toHaveLength(2);
+    expect(client.getReceipt).toHaveBeenCalledTimes(3);
+    expect(progress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phase: 'batch_retry',
+        nextBlock: '10',
+        reason: 'receipt_identity',
+      }),
+    );
+  });
   it.each(['before', 'after'] as const)(
     'replays a part after failure %s part commit without duplicates',
     async (stage) => {
@@ -149,7 +191,7 @@ describe('durable run state', () => {
       return block(h);
     });
     await expect(
-      new ExtractionRunner(selection({ batchSize: 1 }), rpc(client), store).run(),
+      new ExtractionRunner(selection({ batchRetries: 0, batchSize: 1 }), rpc(client), store).run(),
     ).rejects.toThrow('exhausted');
     expect(store.json('checkpoint.json').nextBlock).toBe('10');
     expect(store.json('manifest.json')).toMatchObject({
@@ -159,9 +201,13 @@ describe('durable run state', () => {
     });
     expect(JSON.stringify(store.json('manifest.json'))).not.toMatch(/https:|private|secret/);
     const saved = store.files.get('checkpoint.json');
-    await expect(new ExtractionRunner(selection(), rpc(client), store).run()).rejects.toThrow();
+    await expect(
+      new ExtractionRunner(selection({ batchRetries: 0 }), rpc(client), store).run(),
+    ).rejects.toThrow();
     expect(store.files.get('checkpoint.json')).toEqual(saved);
-    expect((await new ExtractionRunner(selection(), rpc(), store).run()).rowCount).toBe(2);
+    expect(
+      (await new ExtractionRunner(selection({ batchRetries: 0 }), rpc(), store).run()).rowCount,
+    ).toBe(2);
   });
   it('advances empty batches and includes all roles without endpoint metadata', async () => {
     const c = fixtureClient();

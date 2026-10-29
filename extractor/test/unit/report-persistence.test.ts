@@ -51,12 +51,12 @@ it('reports only committed rows on an RPC failure and updates the PDF after resu
     return block(height);
   });
   await expect(
-    new ExtractionRunner(selection({ batchSize: 1 }), rpc(client), store).run(),
+    new ExtractionRunner(selection({ batchRetries: 0, batchSize: 1 }), rpc(client), store).run(),
   ).rejects.toThrow('exhausted');
   const incomplete = await pdfText(store.files.get('report.pdf')!);
   expect(incomplete).toContain('INCOMPLETE');
   expect(incomplete).toContain('Transactions: 1');
-  await new ExtractionRunner(selection(), rpc(), store).run();
+  await new ExtractionRunner(selection({ batchRetries: 0 }), rpc(), store).run();
   const complete = await pdfText(store.files.get('report.pdf')!);
   expect(complete).toContain('Status: COMPLETE');
   expect(complete).toContain('Transactions: 2');

@@ -4,6 +4,7 @@ import { ConcurrencyLimiter } from './concurrency.js';
 import { silentProgress, type ProgressReporter } from './progress.js';
 import { AdaptiveConcurrency } from './adaptive-concurrency.js';
 import { RpcHttp } from './rpc-http.js';
+import { RpcReadError, rpcFailure } from './rpc-errors.js';
 
 export interface RpcTransaction {
   hash: string;
@@ -64,12 +65,13 @@ export interface ReadonlyRPC {
   ): Promise<RpcReceipt>;
 }
 export class InvalidData extends Error {
-  constructor() {
+  constructor(readonly reason = 'invalid_payload') {
     super('Invalid or inconsistent RPC response.');
+    this.name = 'InvalidData';
   }
 }
-export function assertData(condition: unknown): asserts condition {
-  if (!condition) throw new InvalidData();
+export function assertData(condition: unknown, reason?: string): asserts condition {
+  if (!condition) throw new InvalidData(reason);
 }
 export function validHash(value: unknown): value is string {
   return typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value);
@@ -181,8 +183,13 @@ export class RpcClientFactory {
             method: 'eth_getTransactionReceipt',
             params: [hash as Hex],
           });
+          if (raw === null) {
+            const error = new Error('Receipt temporarily unavailable.');
+            error.name = 'ReceiptUnavailable';
+            throw error;
+          }
           try {
-            assertData(raw && (raw.status === '0x0' || raw.status === '0x1'));
+            assertData(raw && (raw.status === '0x0' || raw.status === '0x1'), 'receipt_status');
             return {
               ...raw,
               blockNumber: exact(raw.blockNumber),
@@ -190,7 +197,8 @@ export class RpcClientFactory {
               gasUsed: exact(raw.gasUsed),
               status: raw.status === '0x1' ? 'success' : 'reverted',
             } as RpcReceipt;
-          } catch {
+          } catch (error) {
+            if (error instanceof InvalidData) throw error;
             throw new InvalidData();
           }
         },
@@ -274,6 +282,7 @@ export class RPCManager implements ReadonlyRPC {
     ReadKind,
     { attempts: number; completed: number; duration: number }
   >();
+  private probeFailure: Record<string, string | number> = { category: 'no_eligible_endpoint' };
   constructor(
     private readonly network: NetworkName,
     private readonly clients: ReadClient[],
@@ -456,6 +465,11 @@ export class RPCManager implements ReadonlyRPC {
               Object.assign(o, { head: value, checkedAt: this.now(), healthy: true });
               if (o.cooldownUntil <= this.now()) o.cooldownUntil = 0;
             } catch (error) {
+              this.probeFailure = {
+                ...rpcFailure(error),
+                endpoint: o.index + 1,
+                operation: 'probe',
+              };
               o.healthy = false;
               o.checkedAt = this.now();
               o.cooldownUntil = Math.max(
@@ -479,10 +493,14 @@ export class RPCManager implements ReadonlyRPC {
     validate: (value: T) => void,
     preserveProbeHealth = false,
     operationName: ReadKind = 'block',
+    context: Record<string, string | number> = {},
   ): Promise<T> {
     const rejected = new Set<number>();
+    let failure = this.probeFailure;
+    let retryable = true;
     for (let round = 0; round <= this.retries; round++) {
-      await this.refresh(round > 0);
+      await this.refresh(round > 0 || !this.observations.some((o) => o.healthy));
+      if (!rejected.size) failure = this.probeFailure;
       const ranked = this.observations
         .filter(
           (o) =>
@@ -505,7 +523,8 @@ export class RPCManager implements ReadonlyRPC {
                 const result = await operation(this.clients[o.index]);
                 try {
                   validate(result);
-                } catch {
+                } catch (error) {
+                  if (error instanceof InvalidData) throw error;
                   throw new InvalidData();
                 }
                 return result;
@@ -516,6 +535,14 @@ export class RPCManager implements ReadonlyRPC {
             if (o.cooldownUntil <= this.now()) o.cooldownUntil = 0;
             return value;
           } catch (error) {
+            failure = {
+              ...rpcFailure(error),
+              ...context,
+              operation: operationName,
+              endpoint: o.index + 1,
+              height: String(height),
+            };
+            retryable = !permanentFailure(error) || failure.category === 'invalid_response';
             if (error instanceof InvalidData || permanentFailure(error)) {
               if (!preserveProbeHealth) o.healthy = false;
               this.progress({
@@ -523,6 +550,8 @@ export class RPCManager implements ReadonlyRPC {
                 operation: operationName,
                 endpoint: o.index + 1,
                 height: String(height),
+                ...rpcFailure(error),
+                ...context,
               });
               break;
             }
@@ -543,6 +572,8 @@ export class RPCManager implements ReadonlyRPC {
               height: String(height),
               attempt: attempt + 2,
               delayMs: delay,
+              ...rpcFailure(error),
+              ...context,
             });
           }
         }
@@ -550,7 +581,16 @@ export class RPCManager implements ReadonlyRPC {
       if (rejected.size === this.clients.length) break;
       if (round < this.retries) await this.sleep(Math.min(250 * 2 ** round, 30_000));
     }
-    throw new Error(`RPC reads exhausted for ${this.network}; no progress committed.`);
+    const details: Record<string, string | number> = {
+      ...failure,
+      operation: operationName,
+      height: String(height),
+    };
+    this.progress({ phase: 'rpc_exhausted', ...details });
+    retryable &&=
+      ![401, 403].includes(Number(details.httpStatus)) &&
+      ![-32600, -32601, -32602].includes(Number(details.rpcCode));
+    throw new RpcReadError(this.network, details, retryable);
   }
   async getTokenBalance(contract: string, owner: string, height: bigint): Promise<bigint> {
     assertData(
@@ -601,6 +641,7 @@ export class RPCManager implements ReadonlyRPC {
       },
       false,
       'receipt',
+      { transactionHash: hash },
     );
   }
 }

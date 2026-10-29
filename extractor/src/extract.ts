@@ -86,17 +86,23 @@ export function validateReceipt(receipt: RpcReceipt, tx: RpcTransaction, block: 
       equalHex(receipt.transactionHash, tx.hash) &&
       equalHex(receipt.blockHash, block.hash) &&
       receipt.blockNumber === block.number,
+    'receipt_identity',
   );
   assertData(
     quantity(receipt.transactionIndex) === quantity(tx.transactionIndex) &&
       equalHex(receipt.from, tx.from) &&
       equalHex(receipt.to, tx.to),
+    'receipt_transaction_fields',
   );
   quantity(receipt.gasUsed);
-  assertData(['success', 'reverted'].includes(receipt.status) && Array.isArray(receipt.logs));
+  assertData(
+    ['success', 'reverted'].includes(receipt.status) && Array.isArray(receipt.logs),
+    'receipt_status_or_logs',
+  );
   for (const log of receipt.logs)
     assertData(
       log && addressValid(log.address) && Array.isArray(log.topics) && log.topics.every(validHash),
+      'receipt_log',
     );
 }
 export interface Match {

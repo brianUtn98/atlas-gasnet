@@ -1,3 +1,4 @@
+import { failureDetails, RpcReadError } from './rpc-errors.js';
 import { pathToFileURL } from 'node:url';
 import { help, parseArguments } from './arguments.js';
 import { ConfigurationLoader } from './config.js';
@@ -33,24 +34,28 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     progress: progress.report,
   });
   const store = await FileStore.create(selection.outputDir);
-  const result = await new ExtractionRunner(
-    selection,
-    rpc,
-    store,
-    new OutputManager(),
-    progress.report,
-  ).run();
-  progress.report({ phase: 'rpc_summary', ...rpc.metrics() });
-  console.log(`Extraction complete: ${result.rowCount} rows in ${result.parts.length} parts.`);
-  console.log(
-    `Output formats: ${selection.outputFormats.join(', ')} (in the configured output directory).`,
-  );
+  try {
+    const result = await new ExtractionRunner(
+      selection,
+      rpc,
+      store,
+      new OutputManager(),
+      progress.report,
+    ).run();
+    console.log(`Extraction complete: ${result.rowCount} rows in ${result.parts.length} parts.`);
+    console.log(
+      `Output formats: ${selection.outputFormats.join(', ')} (in the configured output directory).`,
+    );
+  } finally {
+    progress.report({ phase: 'rpc_summary', ...rpc.metrics() });
+  }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch(() => {
+  main().catch((error: unknown) => {
+    console.error(`Failure details: ${JSON.stringify(failureDetails(error))}`);
     console.error(
       'Extraction or report generation failed; check configuration, RPC availability, and output permissions. Use --help.',
     );
-    process.exitCode = 1;
+    process.exitCode = error instanceof RpcReadError && error.retryable ? 2 : 1;
   });
 }
