@@ -1,0 +1,27 @@
+# E3 v1 validation; model/configuration selection only.
+network: ETHEREUM
+erc20BalanceEnrichment: true
+fromBlock: '19040000'
+toBlock: '19047499'
+contracts:
+  - address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+  - address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+      - deposit()
+      - withdraw(uint256)
+outputDir: data/extractions/e3-v1/validation
+outputFormats: [parquet, json]
+batchSize: 100
+rpcConcurrency: 4
+retries: 3
+healthRefreshIntervalMs: 30000
+probeTimeoutMs: 10000

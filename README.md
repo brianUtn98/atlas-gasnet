@@ -48,8 +48,12 @@ the PyTorch MLP, median-by-function baseline, portable runs and explicit held-ou
 evaluation, with deterministic temporary-Parquet tests and Colab commands.
 
 A separate [genetic-programming regressor](docs/symbolic-model.md) provides a
-standalone fit/predict interface and formula inspection for the second model;
-its experiment and new data collection are not yet implemented.
+fit/predict interface and formula inspection for the accepted second technique.
+The [E3 comparison](docs/e3-experiment.md) adds configurable chronological
+preparation, validation selection, portable symbolic formulas and joint
+MLP/symbolic/baseline evaluation. Its separate
+[Python notebook](notebooks/atlas_gasnet_e3_colab.ipynb) leaves final evaluation
+behind an explicit model-freeze step; E3 inputs must be supplied separately.
 
 **Proof of Concept — training and final evaluation completed in Colab.**
 The [retained experiment](results/colab-2026-10-21/README.md) records a temporal-test

@@ -1,4 +1,4 @@
-"""Inclusive block allocation and fixed primary-experiment partition policy."""
+"""Inclusive block allocation and separate E2/E3 experiment policies."""
 
 from pathlib import Path
 
@@ -52,11 +52,15 @@ def filters(selection):
 
 
 def validate_poc(selections, datasets):
+    validate_partitioned(selections, datasets, POC_BOUNDS, "poc-v3")
+
+
+def validate_partitioned(selections, datasets, bounds, experiment):
     ordinary = filters(selections["train"])
     for split in SPLITS:
         selection = selections[split]
-        if tuple(int(selection[k]) for k in ("fromBlock", "toBlock")) != POC_BOUNDS[split]:
-            raise ValueError("Incorrect poc-v3 block window")
+        if tuple(int(selection[k]) for k in ("fromBlock", "toBlock")) != bounds[split]:
+            raise ValueError(f"Incorrect {experiment} block window")
         if split != "unseen-contract" and (
             filters(selection) != ordinary
             or selection.get("erc20BalanceEnrichment")
@@ -69,16 +73,30 @@ def validate_poc(selections, datasets):
     check_disjoint(datasets)
 
 
+def validate_e3(selections, datasets):
+    start = int(selections["train"]["fromBlock"])
+    end = int(selections["test"]["toBlock"])
+    if start <= POC_BOUNDS["test"][1]:
+        raise ValueError("E3 must follow the E2 final-test window")
+    bounds = block_bounds(start, end)
+    bounds["unseen-contract"] = bounds["test"]
+    validate_partitioned(selections, datasets, bounds, "E3")
+    return bounds
+
+
 def prepare_sources(source: Path, mode="poc"):
-    if mode not in ("poc", "smoke"):
+    if mode not in ("poc", "e3", "smoke"):
         raise ValueError("Unknown source mode")
-    if mode == "poc":
+    if mode in ("poc", "e3"):
         loaded = {s: load_extraction(source / s) for s in SPLITS}
         datasets = {s: pair[0] for s, pair in loaded.items()}
         audits = {s: pair[1] for s, pair in loaded.items()}
         selections = {s: a["manifest"]["selection"] for s, a in audits.items()}
-        validate_poc(selections, datasets)
-        bounds = POC_BOUNDS
+        if mode == "poc":
+            validate_poc(selections, datasets)
+            bounds = POC_BOUNDS
+        else:
+            bounds = validate_e3(selections, datasets)
     else:
         rows, audit = load_extraction(source)
         selection = audit["manifest"]["selection"]

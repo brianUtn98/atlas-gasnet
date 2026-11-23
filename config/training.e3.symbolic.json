@@ -1,0 +1,18 @@
+[
+  {
+    "population_size": 500,
+    "generations": 20,
+    "tournament_size": 20,
+    "init_depth": [2, 4],
+    "parsimony_coefficient": 0.001,
+    "seed": 42
+  },
+  {
+    "population_size": 500,
+    "generations": 20,
+    "tournament_size": 20,
+    "init_depth": [2, 4],
+    "parsimony_coefficient": 0.01,
+    "seed": 42
+  }
+]

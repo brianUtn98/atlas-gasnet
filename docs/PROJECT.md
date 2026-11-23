@@ -13,14 +13,21 @@ The first experiment will use Ethereum Mainnet and a small set of smart contract
 3. Store a documented, deduplicated dataset in Parquet format (CSV export is deferred).
 4. Explore and preprocess the data without introducing temporal or execution-result leakage.
 5. Establish a median-by-function baseline.
-6. Train an MLP regressor in PyTorch.
+6. Train an MLP regressor in PyTorch and a genetic-programming symbolic regressor.
 7. Tune hyperparameters on the validation split.
-8. Evaluate once on a chronological test split and analyze errors.
+8. Freeze both models, then evaluate once on chronological and contract holdouts.
 9. Document findings, limitations, and possible improvements.
 
 ## Initial model plan
 
 The first neural model will use two hidden layers with 64 and 32 neurons, ReLU activations, and a numeric output for `gasUsed`. Adam, early stopping, and recorded training/validation loss are planned. The baseline will report MAE and RMSE so that the MLP can be compared against a simple reference.
+
+Genetic Programming is accepted as the second technique (confirmed 2026-11-22).
+It learns a symbolic gasUsed expression directly, rather than tuning the MLP.
+The [E3 experiment](e3-experiment.md) compares MLP, genetic programming and the
+selector-median baseline on identical rows and training-only prepared features.
+E2 results remain a completed separate experiment; E3 final scores are deferred
+until model selection is finished.
 
 ## Data and evaluation policy
 

@@ -5,10 +5,11 @@ PyTorch MLP. It uses gplearn's tree-based genetic programming to learn a symboli
 expression for transaction `gasUsed`. This is an evolutionary regressor, not
 genetic tuning of the MLP. The engine runs on CPU and needs no GPU.
 
-This addition provides model code only. It does not collect data, change the
-extractor, run a PoC experiment, select hyperparameters on validation, evaluate
-held-out partitions, or modify the released dataset and retained MLP results.
-A new extraction and an unconsulted final test window belong to a later experiment.
+Genetic Programming was accepted as the second technique on 2026-11-22.
+The standalone interface below remains available. The [E3 experiment](e3-experiment.md)
+integrates this model with training-only preparation, validation-based candidate
+selection, portable JSON persistence and held-out comparison against MLP and the
+selector-median baseline. E2 datasets and retained results remain separate.
 
 ## Installation
 
@@ -65,8 +66,14 @@ NumPy arrays obtained from prepared CPU PyTorch tensors can be passed directly.
 - Arbitrary feature values can yield negative predictions; these are deliberately
   visible. Nonfinite inputs or predictions fail explicitly. A future experiment
   must define and evaluate any output constraints rather than adding silent clips.
-- There is no validation selection, early stopping on validation, persistence
-  format, CLI, benchmark, or automatic integration into the MLP pipeline here.
+- The standalone class does not perform validation selection. E3 orchestration
+  selects among explicit candidate configurations by validation gas-unit MAE,
+  breaking ties by candidate order. Evolution within each candidate still uses
+  training fitness, without validation-based generation stopping.
+- Selected programs persist as validated JSON prefix trees, with exact constants,
+  feature order and training target scaling. Reload/predict needs no gplearn,
+  pickle or expression evaluation. Generation OOB fitness is null when unavailable
+  because training uses every row; it is not an additional holdout score.
 
 ## Unit verification
 

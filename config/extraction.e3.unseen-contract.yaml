@@ -1,0 +1,19 @@
+# E3 v1 USDT holdout: same test period, contract excluded from train/validation.
+network: ETHEREUM
+erc20BalanceEnrichment: true
+fromBlock: '19047500'
+toBlock: '19059999'
+contracts:
+  - address: '0xdac17f958d2ee523a2206206994597c13d831ec7'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+outputDir: data/extractions/e3-v1/unseen-contract
+outputFormats: [parquet, json]
+batchSize: 100
+rpcConcurrency: 4
+retries: 3
+healthRefreshIntervalMs: 30000
+probeTimeoutMs: 10000

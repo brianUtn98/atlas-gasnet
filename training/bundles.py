@@ -10,6 +10,7 @@ from training.prepare_dataset import digest, read_json, write_json
 from training.preprocessing import TrainingPreprocessor, validate_state
 from training.sources import fingerprint
 from training.splits import prepare_sources
+from training.symbolic_experiment import FrozenSymbolicRegressor, train_symbolic
 from training.trainer import GasMLP, predict, train
 
 RUN_FILES = {
@@ -20,6 +21,7 @@ RUN_FILES = {
     "history.json",
     "provenance.json",
 }
+SYMBOLIC_FILES = {"symbolic.json", "symbolic-history.json"}
 
 
 def hashes(directory, names):
@@ -83,16 +85,29 @@ def load_prepared(directory):
     return m
 
 
-def train_bundle(prepared, output, config=None):
+def train_bundle(prepared, output, config=None, *, symbolic_configs=None):
     prepared, output = Path(prepared), Path(output)
     if output.exists():
         raise ValueError("Output already exists")
+    if config is not None:
+        config.validate()
     source_manifest = load_prepared(prepared)
     # Hash-check all parts, but deserialize only train/validation for fitting and selection.
     training = read_json(prepared / "train.json")
     validation = read_json(prepared / "validation.json")
     processor = TrainingPreprocessor.from_metadata(read_json(prepared / "preprocessing.json"))
     train_x, val_x = processor.transform(training), processor.transform(validation)
+    features = processor.metadata()["feature_names"]
+    symbolic, symbolic_history = None, None
+    if symbolic_configs is not None:
+        symbolic, symbolic_history = train_symbolic(
+            train_x.numpy(),
+            labels(training),
+            val_x.numpy(),
+            labels(validation),
+            features,
+            symbolic_configs,
+        )
     model, target, history, config_meta = train(
         train_x,
         torch.tensor(labels(training)).reshape(-1, 1),
@@ -107,7 +122,12 @@ def train_bundle(prepared, output, config=None):
     write_json(output / "config.json", config_meta)
     write_json(output / "history.json", history)
     write_json(output / "provenance.json", read_json(prepared / "provenance.json"))
-    features = processor.metadata()["feature_names"]
+    run_files = RUN_FILES.copy()
+    if symbolic is not None:
+        symbolic["preprocessing_sha256"] = digest(output / "preprocessing.json")
+        write_json(output / "symbolic.json", symbolic)
+        write_json(output / "symbolic-history.json", symbolic_history)
+        run_files |= SYMBOLIC_FILES
     checkpoint = {
         "version": 2,
         "architecture": [len(features), 64, 32, 1],
@@ -138,7 +158,8 @@ def train_bundle(prepared, output, config=None):
         "selected_epoch": history["best_epoch"],
         "stop_reason": history["stop_reason"],
         "target_transform": target,
-        "artifacts": hashes(output, RUN_FILES),
+        "estimators": ["mlp", "selector_median"] + (["symbolic"] if symbolic else []),
+        "artifacts": hashes(output, run_files),
     }
     write_json(output / "manifest.json", manifest)
     return manifest
@@ -146,7 +167,13 @@ def train_bundle(prepared, output, config=None):
 
 def load_run(directory):
     directory = Path(directory)
-    manifest = verify(directory, "run", RUN_FILES)
+    manifest = verify(directory, "run")
+    estimators = manifest.get("estimators", ["mlp", "selector_median"])
+    if estimators not in (["mlp", "selector_median"], ["mlp", "selector_median", "symbolic"]):
+        raise ValueError("Incompatible run estimators")
+    required = RUN_FILES | (SYMBOLIC_FILES if "symbolic" in estimators else set())
+    if set(manifest["artifacts"]) != required:
+        raise ValueError("Incomplete artifact set")
     processor = TrainingPreprocessor.from_metadata(read_json(directory / "preprocessing.json"))
     checkpoint = torch.load(directory / "model.pt", map_location="cpu", weights_only=True)
     features = processor.metadata()["feature_names"]
@@ -172,16 +199,34 @@ def load_run(directory):
     model.load_state_dict(checkpoint["state_dict"], strict=True)
     model.eval()
     baseline = SelectorMedian.from_metadata(read_json(directory / "baseline.json"))
+    load_symbolic(directory, manifest)
     return model, processor, baseline, target, manifest
+
+
+def load_symbolic(directory, manifest):
+    if "symbolic" not in manifest.get("estimators", []):
+        return None
+    directory = Path(directory)
+    metadata = read_json(directory / "symbolic.json")
+    if metadata.get("feature_names") != manifest["feature_names"] or metadata.get(
+        "preprocessing_sha256"
+    ) != digest(directory / "preprocessing.json"):
+        raise ValueError("Incompatible symbolic/preprocessing identity or dimension")
+    return FrozenSymbolicRegressor(metadata)
 
 
 def predict_rows(directory, rows):
     model, processor, baseline, target, manifest = load_run(directory)
-    predictions = predict(model, processor.transform(rows), target)
+    inputs = processor.transform(rows)
+    predictions = predict(model, inputs, target)
     medians, fallbacks = baseline.predict(rows)
-    return {
+    result = {
         "pipeline_check_only": manifest["pipeline_check_only"],
         "mlp": predictions,
         "selector_median": medians,
         "baseline_fallback_count": fallbacks,
     }
+    symbolic = load_symbolic(directory, manifest)
+    if symbolic is not None:
+        result["symbolic"] = symbolic.predict(inputs.numpy()).tolist()
+    return result

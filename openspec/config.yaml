@@ -6,7 +6,7 @@ context: |
   Confirmed technology stack:
     - Extraction: TypeScript with viem for Ethereum RPC access.
     - Data preparation: Python with Pandas and NumPy.
-    - Modeling: PyTorch for the MLP, compared against a median-by-function baseline.
+    - Modeling: PyTorch MLP and accepted Genetic Programming symbolic regression (gplearn), compared against a median-by-function baseline.
     - Evaluation: scikit-learn for metrics.
     - Dataset storage: Parquet as the primary format, with CSV as an optional export.
     - Exploration and training: notebooks in Google Colab.

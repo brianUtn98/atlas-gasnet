@@ -1,0 +1,27 @@
+# Operational pilot only. Its rows are not an additional dataset partition.
+network: ETHEREUM
+erc20BalanceEnrichment: true
+fromBlock: '19010000'
+toBlock: '19010249'
+contracts:
+  - address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+  - address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+    erc20: true
+    functions:
+      - transfer(address,uint256)
+      - transferFrom(address,address,uint256)
+      - approve(address,uint256)
+      - deposit()
+      - withdraw(uint256)
+outputDir: data/extractions/e3-v1-pilot
+outputFormats: [parquet, json]
+batchSize: 25
+rpcConcurrency: 4
+retries: 3
+healthRefreshIntervalMs: 30000
+probeTimeoutMs: 10000

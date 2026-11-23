@@ -60,6 +60,13 @@ class BundleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Incomplete"):
             load_run(self.run)
 
+    def test_legacy_run_without_estimator_metadata_remains_loadable(self):
+        expected = predict_rows(self.run, self.rows)
+        manifest = read_json(self.run / "manifest.json")
+        manifest.pop("estimators")
+        write_json(self.run / "manifest.json", manifest)
+        self.assertEqual(predict_rows(self.run, self.rows), expected)
+
     def test_corruption_missing_swapping_and_versions(self):
         m = read_json(self.run / "manifest.json")
         for changes in ({"version": 999}, {"dimension": 999}, {"feature_names": []}):

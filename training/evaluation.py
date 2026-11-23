@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error
 
 from training.baseline import labels
-from training.bundles import hashes, load_prepared, load_run, verify
+from training.bundles import hashes, load_prepared, load_run, load_symbolic, verify
 from training.prepare_dataset import digest, read_json, write_json
 from training.sources import fingerprint, identity
 from training.trainer import predict
@@ -54,8 +54,9 @@ def plot_comparison(actual, predictions, output, split, smoke):
     matplotlib.use("Agg")
     from matplotlib import pyplot as plt
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4), layout="constrained")
-    for axis, (name, predicted) in zip(axes, predictions.items(), strict=True):
+    count = len(predictions)
+    fig, axes = plt.subplots(1, count, figsize=(5 * count, 4), layout="constrained", squeeze=False)
+    for axis, (name, predicted) in zip(axes.flat, predictions.items(), strict=True):
         low = min(min(actual), min(predicted))
         high = max(max(actual), max(predicted))
         if low == high:
@@ -68,14 +69,15 @@ def plot_comparison(actual, predictions, output, split, smoke):
     plt.close(fig)
 
 
-def evaluate(run, prepared, verification=False):
+def evaluate(run, prepared, verification=False, *, validation_only=False):
     run, prepared = Path(run), Path(prepared)
-    destination = run / "evaluation"
+    destination = run / ("validation" if validation_only else "evaluation")
     if destination.exists() and not verification:
         raise ValueError("Evaluation already exists; use --verify for unchanged verification")
     if verification and not destination.exists():
         raise ValueError("No existing evaluation to verify")
     model, processor, baseline, target, manifest = load_run(run)
+    symbolic = load_symbolic(run, manifest)
     source = load_prepared(prepared)
     if manifest["prepared_manifest_sha256"] != digest(prepared / "manifest.json"):
         raise ValueError("Model/data fingerprint mismatch")
@@ -97,13 +99,17 @@ def evaluate(run, prepared, verification=False):
     }
     frames, plot_data = {}, {}
     # No train labels needed; final labels are deserialized only after fingerprint verification.
-    for split in (s for s in source["splits"] if s != "train"):
+    splits = ["validation"] if validation_only else [s for s in source["splits"] if s != "train"]
+    for split in splits:
         rows = read_json(prepared / f"{split}.json")
         actual = labels(rows)
+        inputs = processor.transform(rows)
         predictions = {
-            "mlp": predict(model, processor.transform(rows), target),
+            "mlp": predict(model, inputs, target),
             "selector_median": baseline.predict(rows)[0],
         }
+        if symbolic is not None:
+            predictions["symbolic"] = symbolic.predict(inputs.numpy()).tolist()
         section = {
             "estimators": {name: summarize(rows, actual, p) for name, p in predictions.items()},
             "baseline_fallback_count": baseline.predict(rows)[1],

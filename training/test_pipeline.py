@@ -12,7 +12,8 @@ from training.baseline import SelectorMedian
 from training.bundles import predict_rows, prepare, train_bundle
 from training.evaluation import evaluate
 from training.fixtures import extraction, poc_extraction, row
-from training.prepare_dataset import read_json
+from training.pipeline import main
+from training.prepare_dataset import ROOT, read_json, write_json
 from training.preprocessing import TrainingPreprocessor
 from training.sources import identity
 from training.trainer import TrainConfig
@@ -112,3 +113,59 @@ class PipelineTests(unittest.TestCase):
             validate_poc(
                 {s: pair[1]["manifest"]["selection"] for s, pair in loaded.items()}, datasets
             )
+
+    def test_cli_e3_source_symbolic_options_and_validation_scope(self):
+        prepared, run = self.root / "prepared", self.root / "run"
+        with (
+            patch("sys.argv", ["pipeline", "prepare", "--mode", "e3", "--output", str(prepared)]),
+            patch(
+                "training.pipeline.prepare",
+                return_value={"splits": [], "pipeline_check_only": False},
+            ) as call,
+            patch("builtins.print"),
+        ):
+            main()
+        call.assert_called_once_with(ROOT / "data/extractions/e3-v1", prepared, "e3")
+        candidate_path = self.root / "candidates.json"
+        write_json(
+            candidate_path, [{"population_size": 12, "tournament_size": 3, "init_depth": [1, 2]}]
+        )
+        args = [
+            "pipeline",
+            "train",
+            "--prepared",
+            str(prepared),
+            "--output",
+            str(run),
+            "--symbolic-config",
+            str(candidate_path),
+        ]
+        with patch("sys.argv", args), patch("sys.stderr"), self.assertRaises(SystemExit) as error:
+            main()
+        self.assertEqual(error.exception.code, 2)
+        with (
+            patch("sys.argv", [*args, "--with-symbolic"]),
+            patch("training.pipeline.train_bundle") as call,
+            patch("builtins.print"),
+        ):
+            main()
+        self.assertEqual(call.call_args.kwargs["symbolic_configs"][0].population_size, 12)
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "pipeline",
+                    "evaluate",
+                    "--run",
+                    str(run),
+                    "--prepared",
+                    str(prepared),
+                    "--validation-only",
+                    "--verify",
+                ],
+            ),
+            patch("training.evaluation.evaluate") as call,
+            patch("builtins.print"),
+        ):
+            main()
+        call.assert_called_once_with(run, prepared, verification=True, validation_only=True)

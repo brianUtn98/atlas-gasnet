@@ -9,6 +9,10 @@ conflicting duplicates fail. Rows sort by numeric block/index then hash.
 JSON, PDF, sample copies and unlisted Parquet files never add observations.
 
 Source mode `poc` defaults to `data/extractions/poc-v3`, the primary experiment.
+Mode `e3` defaults to `data/extractions/e3-v1`; it validates the separate,
+manifest-configured 60/15/25 chronological campaign after E2. The
+[E3 experiment guide](e3-experiment.md) covers joint MLP, symbolic and baseline
+training, validation-only diagnostics and the separate notebook.
 Mode `smoke` explicitly uses `data/extractions/usdc-enriched-v3` separately; its
 11 rows overlap the primary training source and must never augment it.
 All smoke results carry `pipeline_check_only=true` and make no accuracy claim.
@@ -110,7 +114,7 @@ python -m training.pipeline evaluate --run models/poc-run --prepared models/poc-
 
 Evaluation verifies model/data fingerprints before deserializing final labels.
 Validation diagnostics, temporal test and unseen-contract test remain separate.
-Both estimators use identical row identities. Reports contain gas-unit MAE/RMSE,
+All enabled estimators use identical row identities. Reports contain gas-unit MAE/RMSE,
 dimensionless R², contract/selector counts/errors and fallback counts. R² is null
 with a reason for singleton/constant targets. Groups below 10 rows are flagged
 as rare (a reporting convention, not a validity threshold). Aligned CSV files

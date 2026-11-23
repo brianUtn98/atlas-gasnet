@@ -74,9 +74,9 @@ def extraction(directory, rows=None, start=100, end=109):
     return manifest
 
 
-def poc_extraction(directory):
+def poc_extraction(directory, bounds=None):
     """Four declared partitions, including empty blocks and separate USDT rows."""
-    for index, (split, (lo, hi)) in enumerate(POC_BOUNDS.items()):
+    for index, (split, (lo, hi)) in enumerate((bounds or POC_BOUNDS).items()):
         contract = USDT if split == "unseen-contract" else CONTRACT
         path = Path(directory) / split
         m = extraction(path, [row(lo, index, to=contract), row(hi, index, to=contract)], lo, hi)
