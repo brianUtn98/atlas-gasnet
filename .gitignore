@@ -35,3 +35,6 @@ config/*.local.yml
 data/extractions/
 *.tmp
 tmp/pdfs/
+# Local diagnostic exports and plotting cache
+tmp/matplotlib/
+tmp/usdc-enriched-preview.json

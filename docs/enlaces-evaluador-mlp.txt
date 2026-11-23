@@ -1,0 +1,32 @@
+Código Python del MLP
+https://github.com/brianUtn98/atlas-gasnet/tree/20190c43a8cfd9724b53902c582862195c6e8ca8/training
+
+Cuaderno en Google Colab
+https://colab.research.google.com/github/brianUtn98/atlas-gasnet/blob/20190c43a8cfd9724b53902c582862195c6e8ca8/notebooks/atlas_gasnet_colab.ipynb
+
+Archivo del cuaderno Python (.ipynb)
+https://github.com/brianUtn98/atlas-gasnet/blob/20190c43a8cfd9724b53902c582862195c6e8ca8/notebooks/atlas_gasnet_colab.ipynb
+
+Dependencias de Python
+https://github.com/brianUtn98/atlas-gasnet/blob/20190c43a8cfd9724b53902c582862195c6e8ca8/training/requirements.txt
+
+Datos de entrenamiento en JSON legible
+https://raw.githubusercontent.com/brianUtn98/atlas-gasnet/20190c43a8cfd9724b53902c582862195c6e8ca8/data/poc/v1/train.json
+
+Datos de validación en JSON legible
+https://raw.githubusercontent.com/brianUtn98/atlas-gasnet/20190c43a8cfd9724b53902c582862195c6e8ca8/data/poc/v1/validation.json
+
+Datos de prueba temporal en JSON legible
+https://raw.githubusercontent.com/brianUtn98/atlas-gasnet/20190c43a8cfd9724b53902c582862195c6e8ca8/data/poc/v1/test.json
+
+Datos de prueba con USDT en JSON legible
+https://raw.githubusercontent.com/brianUtn98/atlas-gasnet/20190c43a8cfd9724b53902c582862195c6e8ca8/data/poc/v1/unseen-contract.json
+
+Datos Parquet de entrenamiento, validación y ambas pruebas (.zip)
+https://raw.githubusercontent.com/brianUtn98/atlas-gasnet/20190c43a8cfd9724b53902c582862195c6e8ca8/data/colab/poc-v3.zip
+
+Métricas, predicciones y gráficos del MLP
+https://github.com/brianUtn98/atlas-gasnet/tree/20190c43a8cfd9724b53902c582862195c6e8ca8/results/colab-2026-10-21
+
+Modelo entrenado, pesos e historial (.zip)
+https://raw.githubusercontent.com/brianUtn98/atlas-gasnet/20190c43a8cfd9724b53902c582862195c6e8ca8/results/colab-2026-10-21/selected-run.zip
