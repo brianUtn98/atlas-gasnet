@@ -1,0 +1,632 @@
+{
+  "version": 2,
+  "pipeline_check_only": false,
+  "binding": {
+    "run_manifest_sha256": "4de615f8133736bd42614f93131c161fd15180fec03a2ff9355c37160e93f39f",
+    "prepared_manifest_sha256": "5405f5eb2d6e0b3bf4ce5fc5341ddeff85e1c28b00b6f0101b182eab2ee40fcc"
+  },
+  "rare_group_threshold": 10,
+  "validation_diagnostics": {
+    "estimators": {
+      "mlp": {
+        "aggregate": {
+          "count": 39111,
+          "mae": 1636.683496093947,
+          "rmse": 3766.6805275391102,
+          "r2": 0.8743934160104181,
+          "r2_undefined_reason": null
+        },
+        "to": {
+          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+            "count": 29143,
+            "mae": 763.7942523761023,
+            "rmse": 2726.9015605905724,
+            "r2": 0.9129148604753061,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+            "count": 9968,
+            "mae": 4188.711107417095,
+            "rmse": 5824.781891994858,
+            "r2": 0.4996035245452817,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          }
+        },
+        "functionSelector": {
+          "0xa9059cbb": {
+            "count": 23467,
+            "mae": 105.69446853628209,
+            "rmse": 789.5198571383203,
+            "r2": 0.9933447314098918,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x2e1a7d4d": {
+            "count": 3027,
+            "mae": 1462.41129041734,
+            "rmse": 1906.6483078221495,
+            "r2": 0.037484694091281745,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x23b872dd": {
+            "count": 622,
+            "mae": 1582.1294526060428,
+            "rmse": 3388.5766208653054,
+            "r2": 0.018602159597522316,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0xd0e30db0": {
+            "count": 3349,
+            "mae": 7628.883387218503,
+            "rmse": 8086.050785799577,
+            "r2": 0.00891030425108752,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x095ea7b3": {
+            "count": 8646,
+            "mae": 3535.9775807518404,
+            "rmse": 5921.4184629018055,
+            "r2": 0.594836965161172,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          }
+        }
+      },
+      "selector_median": {
+        "aggregate": {
+          "count": 39111,
+          "mae": 7583.939147554396,
+          "rmse": 10077.963174141749,
+          "r2": 0.10083298896263782,
+          "r2_undefined_reason": null
+        },
+        "to": {
+          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+            "count": 29143,
+            "mae": 8789.252822290087,
+            "rmse": 10656.75307404747,
+            "r2": -0.3300100936184258,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+            "count": 9968,
+            "mae": 4060.0169542536114,
+            "rmse": 8153.429957049145,
+            "r2": 0.019527097182675313,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          }
+        },
+        "functionSelector": {
+          "0xa9059cbb": {
+            "count": 23467,
+            "mae": 8785.345549068905,
+            "rmse": 10997.439446050166,
+            "r2": -0.29128656098904226,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x2e1a7d4d": {
+            "count": 3027,
+            "mae": 932.4991740997688,
+            "rmse": 2116.1859847927435,
+            "r2": -0.18569810914817442,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x23b872dd": {
+            "count": 622,
+            "mae": 1516.83922829582,
+            "rmse": 3432.826457708863,
+            "r2": -0.0071964240849917704,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0xd0e30db0": {
+            "count": 3349,
+            "mae": 5890.8984771573605,
+            "rmse": 10024.738323326921,
+            "r2": -0.5233023832084776,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x095ea7b3": {
+            "count": 8646,
+            "mae": 7744.040249826509,
+            "rmse": 9478.004394753294,
+            "r2": -0.03803529379780768,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          }
+        }
+      },
+      "symbolic": {
+        "aggregate": {
+          "count": 39111,
+          "mae": 4997.940235679417,
+          "rmse": 6799.261525641347,
+          "r2": 0.5907220730161457,
+          "r2_undefined_reason": null
+        },
+        "to": {
+          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+            "count": 29143,
+            "mae": 4534.282357647245,
+            "rmse": 6241.648289876147,
+            "r2": 0.5437491179829987,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+            "count": 9968,
+            "mae": 6353.5162328194265,
+            "rmse": 8215.238875820736,
+            "r2": 0.004605359019860367,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          }
+        },
+        "functionSelector": {
+          "0xa9059cbb": {
+            "count": 23467,
+            "mae": 2985.889210446203,
+            "rmse": 4328.642102819156,
+            "r2": 0.7999480306126152,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x2e1a7d4d": {
+            "count": 3027,
+            "mae": 2869.1381152941226,
+            "rmse": 2969.789275865679,
+            "r2": -1.3351658403234348,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x23b872dd": {
+            "count": 622,
+            "mae": 14823.74694563237,
+            "rmse": 15213.269606675778,
+            "r2": -18.781335157635343,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0xd0e30db0": {
+            "count": 3349,
+            "mae": 9480.824069953798,
+            "rmse": 9901.746350962361,
+            "r2": -0.486153352455283,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          },
+          "0x095ea7b3": {
+            "count": 8646,
+            "mae": 8761.0510028525,
+            "rmse": 10027.656985079533,
+            "r2": -0.161922730741082,
+            "r2_undefined_reason": null,
+            "rare_group": false,
+            "limitation": null
+          }
+        }
+      }
+    },
+    "baseline_fallback_count": 0,
+    "row_ids_sha256": "219285e46529c1bc4f2a44ac8e994fd1ad3f60f8479fa6841635733cd64d8fdf"
+  },
+  "final_tests": {
+    "test": {
+      "estimators": {
+        "mlp": {
+          "aggregate": {
+            "count": 59504,
+            "mae": 1879.4251050489124,
+            "rmse": 4028.0778426280367,
+            "r2": 0.868251203297913,
+            "r2_undefined_reason": null
+          },
+          "to": {
+            "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+              "count": 19885,
+              "mae": 4166.573286080935,
+              "rmse": 5947.741738576649,
+              "r2": 0.4814519606496148,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+              "count": 39619,
+              "mae": 731.4925075623091,
+              "rmse": 2571.7323191791297,
+              "r2": 0.9277138696573732,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          },
+          "functionSelector": {
+            "0xd0e30db0": {
+              "count": 6652,
+              "mae": 7134.568031148772,
+              "rmse": 7908.8925547920535,
+              "r2": 0.021441005944546232,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0xa9059cbb": {
+              "count": 31739,
+              "mae": 123.77399164506055,
+              "rmse": 845.1397560422365,
+              "r2": 0.9926744292064197,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x095ea7b3": {
+              "count": 14443,
+              "mae": 3463.119583166701,
+              "rmse": 5854.429996004174,
+              "r2": 0.6694938790133866,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x2e1a7d4d": {
+              "count": 6099,
+              "mae": 1555.4426128388743,
+              "rmse": 1964.2359721771466,
+              "r2": 0.05533012230439327,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x23b872dd": {
+              "count": 571,
+              "mae": 1648.3739954909586,
+              "rmse": 3781.397700209751,
+              "r2": -0.017542879617662432,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          }
+        },
+        "selector_median": {
+          "aggregate": {
+            "count": 59504,
+            "mae": 7555.650275611723,
+            "rmse": 10215.439663140287,
+            "r2": 0.15264562918277325,
+            "r2_undefined_reason": null
+          },
+          "to": {
+            "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+              "count": 19885,
+              "mae": 4306.290470203671,
+              "rmse": 8494.710968610487,
+              "r2": -0.0577474936891722,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+              "count": 39619,
+              "mae": 9186.522325147025,
+              "rmse": 10977.89172239684,
+              "r2": -0.31716850260778484,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          },
+          "functionSelector": {
+            "0xd0e30db0": {
+              "count": 6652,
+              "mae": 5516.1401082381235,
+              "rmse": 9696.41876194378,
+              "r2": -0.4708838798224013,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0xa9059cbb": {
+              "count": 31739,
+              "mae": 9122.436056586534,
+              "rmse": 11293.520209508684,
+              "r2": -0.3081064073415707,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x095ea7b3": {
+              "count": 14443,
+              "mae": 8051.195665720418,
+              "rmse": 10184.770209652746,
+              "r2": -0.00025963190349909127,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x2e1a7d4d": {
+              "count": 6099,
+              "mae": 1015.939170355796,
+              "rmse": 2211.515550588963,
+              "r2": -0.19749233414578637,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x23b872dd": {
+              "count": 571,
+              "mae": 1543.6427320490368,
+              "rmse": 3749.2729826492787,
+              "r2": -0.0003273264300154288,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          }
+        },
+        "symbolic": {
+          "aggregate": {
+            "count": 59504,
+            "mae": 5249.891303914921,
+            "rmse": 7116.944812475085,
+            "r2": 0.588719475918104,
+            "r2_undefined_reason": null
+          },
+          "to": {
+            "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+              "count": 19885,
+              "mae": 6677.343142879573,
+              "rmse": 8604.685848399986,
+              "r2": -0.08531256234302753,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+              "count": 39619,
+              "mae": 4533.44515893872,
+              "rmse": 6237.906161466398,
+              "r2": 0.5747139616242873,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          },
+          "functionSelector": {
+            "0xd0e30db0": {
+              "count": 6652,
+              "mae": 9626.045323321267,
+              "rmse": 10027.729725724643,
+              "r2": -0.5731165568129744,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0xa9059cbb": {
+              "count": 31739,
+              "mae": 2972.381931764244,
+              "rmse": 4378.9725600994,
+              "r2": 0.8033341951550205,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x095ea7b3": {
+              "count": 14443,
+              "mae": 8855.22690603683,
+              "rmse": 10335.275405508815,
+              "r2": -0.0300406875101622,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x2e1a7d4d": {
+              "count": 6099,
+              "mae": 2861.4253986927947,
+              "rmse": 2976.292136023898,
+              "r2": -1.1689216336661876,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x23b872dd": {
+              "count": 571,
+              "mae": 15181.73872966332,
+              "rmse": 15637.699287826634,
+              "r2": -16.40178196848185,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          }
+        }
+      },
+      "baseline_fallback_count": 0,
+      "row_ids_sha256": "80b491895e12e158a321659bb18e271d373f102e7404aa646ca36a1b156f6594"
+    },
+    "unseen-contract": {
+      "estimators": {
+        "mlp": {
+          "aggregate": {
+            "count": 145124,
+            "mae": 7152.089646882514,
+            "rmse": 8019.091591387245,
+            "r2": 0.376949902096667,
+            "r2_undefined_reason": null
+          },
+          "to": {
+            "0xdac17f958d2ee523a2206206994597c13d831ec7": {
+              "count": 145124,
+              "mae": 7152.089646882514,
+              "rmse": 8019.091591387245,
+              "r2": 0.376949902096667,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          },
+          "functionSelector": {
+            "0xa9059cbb": {
+              "count": 129200,
+              "mae": 7504.152262277034,
+              "rmse": 8086.999020146425,
+              "r2": 0.345623184042975,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x23b872dd": {
+              "count": 3673,
+              "mae": 3838.9965827930055,
+              "rmse": 8645.591340530087,
+              "r2": 0.0012514667214379438,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x095ea7b3": {
+              "count": 12251,
+              "mae": 4432.515809271602,
+              "rmse": 7045.649301882324,
+              "r2": 0.36602215718354003,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          }
+        },
+        "selector_median": {
+          "aggregate": {
+            "count": 145124,
+            "mae": 8997.546229431382,
+            "rmse": 11997.473714682668,
+            "r2": -0.39460826626716816,
+            "r2_undefined_reason": null
+          },
+          "to": {
+            "0xdac17f958d2ee523a2206206994597c13d831ec7": {
+              "count": 145124,
+              "mae": 8997.546229431382,
+              "rmse": 11997.473714682668,
+              "r2": -0.39460826626716816,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          },
+          "functionSelector": {
+            "0xa9059cbb": {
+              "count": 129200,
+              "mae": 9403.450185758515,
+              "rmse": 12312.476641863088,
+              "r2": -0.516854633238069,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x23b872dd": {
+              "count": 3673,
+              "mae": 5084.437789273074,
+              "rmse": 8917.083697631699,
+              "r2": -0.062459621236559126,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x095ea7b3": {
+              "count": 12251,
+              "mae": 5890.049383723777,
+              "rmse": 9082.7319574494,
+              "r2": -0.0535739664611099,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          }
+        },
+        "symbolic": {
+          "aggregate": {
+            "count": 145124,
+            "mae": 3360.0104007261953,
+            "rmse": 5560.770915908294,
+            "r2": 0.7003994343692517,
+            "r2_undefined_reason": null
+          },
+          "to": {
+            "0xdac17f958d2ee523a2206206994597c13d831ec7": {
+              "count": 145124,
+              "mae": 3360.0104007261953,
+              "rmse": 5560.770915908294,
+              "r2": 0.7003994343692517,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          },
+          "functionSelector": {
+            "0xa9059cbb": {
+              "count": 129200,
+              "mae": 2736.964506625402,
+              "rmse": 4517.829491476092,
+              "r2": 0.7957731704186746,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x23b872dd": {
+              "count": 3673,
+              "mae": 13014.47866304725,
+              "rmse": 15575.323575950284,
+              "r2": -2.241461765768273,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            },
+            "0x095ea7b3": {
+              "count": 12251,
+              "mae": 7036.172966256946,
+              "rmse": 8849.592557824411,
+              "r2": -0.00018096951723056698,
+              "r2_undefined_reason": null,
+              "rare_group": false,
+              "limitation": null
+            }
+          }
+        }
+      },
+      "baseline_fallback_count": 0,
+      "row_ids_sha256": "f6d2a579b3fb18f5c12c29f11d87c784406cf6db5479182ff745a296c4b6bd49"
+    }
+  }
+}

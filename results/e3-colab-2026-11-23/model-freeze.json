@@ -1,0 +1,18 @@
+{
+  "frozen_at_utc": "2026-11-23T06:31:33.601418+00:00",
+  "protocol": "fixed E3 reproduction; no new tuning",
+  "prior_local_scores_public": true,
+  "current_run_final_scores_consulted": false,
+  "run_manifest_sha256": "4de615f8133736bd42614f93131c161fd15180fec03a2ff9355c37160e93f39f",
+  "prepared_manifest_sha256": "5405f5eb2d6e0b3bf4ce5fc5341ddeff85e1c28b00b6f0101b182eab2ee40fcc",
+  "artifacts": {
+    "baseline.json": "cc05be4d744539a609f8dfcff81bedf8669030567b340d45a5138b01569ed65f",
+    "config.json": "75fdb725084b9c29fb94e25954c8efd31a85b1b9b660ba99724fc2638834984f",
+    "history.json": "e79f5c46dc501da19f712842baa1bfdfb738d71af9bdf156274f539f690b2e95",
+    "model.pt": "7911792a1977acffe29456fdf76e979397d78f32372c69ecb9696760daa29401",
+    "preprocessing.json": "5dbb23bdf07d70a2acab64bad2adb84fd3ac884b432cc4f1db035606c2410d2e",
+    "provenance.json": "309e4b4f55f68be24a62dc9a3e65700bd8505bb82dbe317362a63dd306ddc52b",
+    "symbolic-history.json": "8eb81912bb909aaea341779a2d53142e7ddcbd709718613f2c50e5d48f43879a",
+    "symbolic.json": "be12e4c427e7c0923ac79bdf9547e035c4eacd1bfd9ed2405d7cc0524da92b1b"
+  }
+}

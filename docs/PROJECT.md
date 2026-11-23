@@ -26,8 +26,19 @@ Genetic Programming is accepted as the second technique (confirmed 2026-11-22).
 It learns a symbolic gasUsed expression directly, rather than tuning the MLP.
 The [E3 experiment](e3-experiment.md) compares MLP, genetic programming and the
 selector-median baseline on identical rows and training-only prepared features.
-E2 results remain a completed separate experiment; E3 final scores are deferred
-until model selection is finished.
+E2 results remain a completed separate experiment. The fixed-candidate E3 run
+completed on 2026-11-23 after validation-only selection and a recorded model
+freeze. [Retained E3 results](../results/e3-2026-11-23/README.md) show that MLP
+led temporal-test MAE while the symbolic model led the unseen-USDT comparison;
+neither finding establishes generalization beyond the studied campaign.
+
+The [Colab reproduction and evidence](../results/e3-colab-2026-11-23/README.md)
+retain a second fixed-protocol execution and compare the original E2 model on
+the identical E3 rows. E3 MLP improved temporal MAE against that fixed reference,
+but E2 MLP retained lower USDT errors than all three E3 estimators. Colab/local
+MLP results differ by environment and are reported separately. The academic
+report remains deferred pending professor feedback; the broader planned E2 GP
+and five-seed study have not been executed.
 
 ## Data and evaluation policy
 

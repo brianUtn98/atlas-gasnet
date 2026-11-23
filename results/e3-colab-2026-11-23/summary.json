@@ -1,0 +1,217 @@
+{
+  "scope": "Fixed-protocol Colab reproduction on previously evaluated E3; no new tuning",
+  "colab_url": "https://colab.research.google.com/drive/1KawDL44c8MWIt9HdeMObTE2OTJ_ZBaOR",
+  "training_code_revision": "28daec0f22501d1bd4c0ed3f84c243fdb2dbc4d3",
+  "input_archive_sha256": "51e64ad07fa7d77b0562de436d42eeaa559ab2e6dd20796c988a27cc8e007f32",
+  "selected_run_zip": {
+    "bytes": 29543440,
+    "sha256": "4d12cadde7b8d7c1564de305ea8ecae216a98b2b4b685be5fb6fa292cd61d6ac"
+  },
+  "runtime": {
+    "python": "3.13.18",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "libraries": {
+      "torch": "2.14.1+cpu",
+      "numpy": "2.5.4",
+      "pandas": "3.0.6",
+      "pyarrow": "26.0.0",
+      "scikit-learn": "1.9.1"
+    },
+    "device": "cpu",
+    "threads": 1,
+    "num_workers": 0,
+    "deterministic_algorithms": true,
+    "code_revision": "28daec0f22501d1bd4c0ed3f84c243fdb2dbc4d3",
+    "working_tree_may_have_changes": true
+  },
+  "configuration": {
+    "seed": 42,
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "max_epochs": 500,
+    "patience": 25,
+    "min_delta": 1e-06,
+    "device": "cpu",
+    "threads": 1
+  },
+  "training_cell_wall_seconds": 666.37,
+  "mlp_epochs": 84,
+  "mlp_selected_epoch": 59,
+  "mlp_stop_reason": "patience",
+  "symbolic_selected_candidate": 0,
+  "same_row_comparison": [
+    {
+      "Partition": "validation",
+      "Estimator": "E2 retained MLP",
+      "count": 39111,
+      "mae": 2069.835493249122,
+      "rmse": 4196.023190428213,
+      "r2": 0.8441271090145501,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "validation",
+      "Estimator": "E3 mlp",
+      "count": 39111,
+      "mae": 1636.683496093947,
+      "rmse": 3766.6805275391102,
+      "r2": 0.8743934160104181,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "validation",
+      "Estimator": "E3 selector_median",
+      "count": 39111,
+      "mae": 7583.939147554396,
+      "rmse": 10077.963174141749,
+      "r2": 0.10083298896263782,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "validation",
+      "Estimator": "E3 symbolic",
+      "count": 39111,
+      "mae": 4997.940235679417,
+      "rmse": 6799.261525641347,
+      "r2": 0.5907220730161457,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E2 retained MLP",
+      "count": 59504,
+      "mae": 2449.9164323219347,
+      "rmse": 4672.852287850144,
+      "r2": 0.8226974206139566,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E3 mlp",
+      "count": 59504,
+      "mae": 1879.4251050489124,
+      "rmse": 4028.0778426280367,
+      "r2": 0.868251203297913,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E3 selector_median",
+      "count": 59504,
+      "mae": 7555.650275611723,
+      "rmse": 10215.439663140287,
+      "r2": 0.15264562918277325,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E3 symbolic",
+      "count": 59504,
+      "mae": 5249.891303914921,
+      "rmse": 7116.944812475085,
+      "r2": 0.588719475918104,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E2 retained MLP",
+      "count": 145124,
+      "mae": 3341.2043222727243,
+      "rmse": 4950.153323908249,
+      "r2": 0.7625840334841216,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E3 mlp",
+      "count": 145124,
+      "mae": 7152.089646882514,
+      "rmse": 8019.091591387245,
+      "r2": 0.376949902096667,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E3 selector_median",
+      "count": 145124,
+      "mae": 8997.546229431382,
+      "rmse": 11997.473714682668,
+      "r2": -0.39460826626716816,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E3 symbolic",
+      "count": 145124,
+      "mae": 3360.0104007261953,
+      "rmse": 5560.770915908294,
+      "r2": 0.7003994343692517,
+      "r2_undefined_reason": null
+    }
+  ],
+  "e3_training_metrics": {
+    "mlp": {
+      "count": 155435,
+      "mae": 1584.623091026836,
+      "rmse": 3680.488172666791,
+      "r2": 0.8854783370463477,
+      "r2_undefined_reason": null
+    },
+    "symbolic": {
+      "count": 155435,
+      "mae": 5086.584468820075,
+      "rmse": 6965.191040094165,
+      "r2": 0.589849865620309,
+      "r2_undefined_reason": null
+    },
+    "selector_median": {
+      "count": 155435,
+      "mae": 7959.307916492425,
+      "rmse": 10477.597254787861,
+      "r2": 0.07188841384997446,
+      "r2_undefined_reason": null
+    }
+  },
+  "inference_portability_verification": {
+    "validation": {
+      "rows": 39111,
+      "row_ids_and_labels_match": true,
+      "csv_aggregate_metrics_match": true,
+      "inference_rows": 512,
+      "maximum_portable_inference_difference_gas": {
+        "mlp": 0.001296497561270371,
+        "symbolic": 0.0,
+        "selector_median": 0.0
+      }
+    },
+    "test": {
+      "rows": 59504,
+      "row_ids_and_labels_match": true,
+      "csv_aggregate_metrics_match": true,
+      "inference_rows": 512,
+      "maximum_portable_inference_difference_gas": {
+        "mlp": 0.0025929951189027634,
+        "symbolic": 0.0,
+        "selector_median": 0.0
+      }
+    },
+    "unseen-contract": {
+      "rows": 145124,
+      "row_ids_and_labels_match": true,
+      "csv_aggregate_metrics_match": true,
+      "inference_rows": 512,
+      "maximum_portable_inference_difference_gas": {
+        "mlp": 0.0025929951152647845,
+        "symbolic": 0.0,
+        "selector_median": 0.0
+      }
+    }
+  },
+  "inference_tolerance_gas": {
+    "mlp": 0.1,
+    "symbolic": 1e-08,
+    "selector_median": 1e-08
+  },
+  "colab_same_runtime_evaluation_and_zip_reload_exact": true,
+  "local_training_run_is_separate": "../e3-2026-11-23"
+}

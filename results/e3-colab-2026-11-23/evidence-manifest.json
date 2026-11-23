@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "kind": "retained_colab_evidence",
+  "files": {
+    "executed.ipynb": {
+      "bytes": 672365,
+      "sha256": "16190b13b6548b216f7a0b19f5ec72b279aa0bf34348784aedd8322d0390636d"
+    },
+    "metrics.json": {
+      "bytes": 20383,
+      "sha256": "deedf40d59ec14d2f1c0039db45d12fb71fb67f81490c8093511e48e778e33d7"
+    },
+    "mlp-learning.png": {
+      "bytes": 72356,
+      "sha256": "3c7d378f81ddb719c41d8c58bc9d16830adeb53f630303950ce2666ecaaa1110"
+    },
+    "model-freeze.json": {
+      "bytes": 1127,
+      "sha256": "ffdef65c802e77dd63ed08d50743b0dc462a83b378f1bf7cc2f078ef860e57b1"
+    },
+    "README.md": {
+      "bytes": 7870,
+      "sha256": "a39aeb78f8b55d6b9bcfdc56daac9204a9c7bd3812730b9821ca731e7cdd04c9"
+    },
+    "screenshots/01-data-and-final-metrics.jpg": {
+      "bytes": 123502,
+      "sha256": "ae9dd21b7626e6696edf9db5048a080450bb4ff1fb269264be6ed7dd236bd560"
+    },
+    "screenshots/02-mlp-learning.jpg": {
+      "bytes": 67382,
+      "sha256": "c294af0249ea81bfa6b4c3342084d282192b663269406295831f96249353b485"
+    },
+    "screenshots/03-symbolic-learning.jpg": {
+      "bytes": 63926,
+      "sha256": "29ea7b1ea431db38e823eddf4945e6ed565ae69359b2abbaae02f3ad53674623"
+    },
+    "screenshots/04-validation-selection.jpg": {
+      "bytes": 105052,
+      "sha256": "35816ae1d2bf5ed03efa6e1adc1686e0f98c8d42e55f8d47a891e68f68bae7ed"
+    },
+    "screenshots/05-e2-e3-same-rows.jpg": {
+      "bytes": 127162,
+      "sha256": "9997143627d94f75c56c989119aa8da31009540a49bf6673a52d09c7e16046ca"
+    },
+    "screenshots/06-validation-by-function.jpg": {
+      "bytes": 113982,
+      "sha256": "659febf3cf6174d61026d8fbf473f915cf7c2bd1d03ace82c505be3403d40cf2"
+    },
+    "screenshots/07-cases-and-verification.jpg": {
+      "bytes": 120342,
+      "sha256": "63d893579f8baaddba46ba8a848168ab573624ff6a24b4dfac121c1374d0bc6f"
+    },
+    "selected-run.zip": {
+      "bytes": 29543440,
+      "sha256": "4d12cadde7b8d7c1564de305ea8ecae216a98b2b4b685be5fb6fa292cd61d6ac"
+    },
+    "summary.json": {
+      "bytes": 5944,
+      "sha256": "9da96a5016c7e206a2b82266346e9e255ad9a8e0ad5de3b28a2840a00aa9047e"
+    },
+    "supplementary-analysis.json": {
+      "bytes": 3618,
+      "sha256": "12ee6b91d726a0c314dabd7de2823d9edb3cababd10c97159b164d7852090440"
+    },
+    "symbolic-learning.png": {
+      "bytes": 60125,
+      "sha256": "0e16e2964139c86111c9bf110b0a6f7120c0d4b5f92e40aa9e8626e9742af16f"
+    },
+    "test.png": {
+      "bytes": 101059,
+      "sha256": "0c361ebe0325963530dd08623c70ecb41d3f0466403d57c280cffeb7fc697dbf"
+    },
+    "unseen-contract.png": {
+      "bytes": 91832,
+      "sha256": "fd97f83f67a0a5d860ff596286ca27cfafc6f238835da04d96526d2f40e43552"
+    },
+    "validation.png": {
+      "bytes": 97450,
+      "sha256": "d34730ce37615d9e9fdf83a96895aecc2a1b2e27a2f60ce1514a2040d771ec3d"
+    }
+  }
+}

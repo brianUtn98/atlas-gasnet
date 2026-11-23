@@ -1,0 +1,137 @@
+{
+  "scope": "Fixed E2 external reference plus E3 training diagnostics; no fitting or reselection",
+  "e2_archive_sha256": "9a1a23a405281187711a520faa9a965ea9d70cbcde2354e5c69cf2dcee5a40a5",
+  "same_row_comparison": [
+    {
+      "Partition": "validation",
+      "Estimator": "E2 retained MLP",
+      "count": 39111,
+      "mae": 2069.835493249122,
+      "rmse": 4196.023190428213,
+      "r2": 0.8441271090145501,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "validation",
+      "Estimator": "E3 mlp",
+      "count": 39111,
+      "mae": 1636.683496093947,
+      "rmse": 3766.6805275391102,
+      "r2": 0.8743934160104181,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "validation",
+      "Estimator": "E3 selector_median",
+      "count": 39111,
+      "mae": 7583.939147554396,
+      "rmse": 10077.963174141749,
+      "r2": 0.10083298896263782,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "validation",
+      "Estimator": "E3 symbolic",
+      "count": 39111,
+      "mae": 4997.940235679417,
+      "rmse": 6799.261525641347,
+      "r2": 0.5907220730161457,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E2 retained MLP",
+      "count": 59504,
+      "mae": 2449.9164323219347,
+      "rmse": 4672.852287850144,
+      "r2": 0.8226974206139566,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E3 mlp",
+      "count": 59504,
+      "mae": 1879.4251050489124,
+      "rmse": 4028.0778426280367,
+      "r2": 0.868251203297913,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E3 selector_median",
+      "count": 59504,
+      "mae": 7555.650275611723,
+      "rmse": 10215.439663140287,
+      "r2": 0.15264562918277325,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "test",
+      "Estimator": "E3 symbolic",
+      "count": 59504,
+      "mae": 5249.891303914921,
+      "rmse": 7116.944812475085,
+      "r2": 0.588719475918104,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E2 retained MLP",
+      "count": 145124,
+      "mae": 3341.2043222727243,
+      "rmse": 4950.153323908249,
+      "r2": 0.7625840334841216,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E3 mlp",
+      "count": 145124,
+      "mae": 7152.089646882514,
+      "rmse": 8019.091591387245,
+      "r2": 0.376949902096667,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E3 selector_median",
+      "count": 145124,
+      "mae": 8997.546229431382,
+      "rmse": 11997.473714682668,
+      "r2": -0.39460826626716816,
+      "r2_undefined_reason": null
+    },
+    {
+      "Partition": "unseen-contract",
+      "Estimator": "E3 symbolic",
+      "count": 145124,
+      "mae": 3360.0104007261953,
+      "rmse": 5560.770915908294,
+      "r2": 0.7003994343692517,
+      "r2_undefined_reason": null
+    }
+  ],
+  "e3_training_metrics": {
+    "mlp": {
+      "count": 155435,
+      "mae": 1584.623091026836,
+      "rmse": 3680.488172666791,
+      "r2": 0.8854783370463477,
+      "r2_undefined_reason": null
+    },
+    "symbolic": {
+      "count": 155435,
+      "mae": 5086.584468820075,
+      "rmse": 6965.191040094165,
+      "r2": 0.589849865620309,
+      "r2_undefined_reason": null
+    },
+    "selector_median": {
+      "count": 155435,
+      "mae": 7959.307916492425,
+      "rmse": 10477.597254787861,
+      "r2": 0.07188841384997446,
+      "r2_undefined_reason": null
+    }
+  }
+}

@@ -8,7 +8,7 @@ The project treats gas-consumption prediction as a supervised regression problem
 
 - **Extraction:** TypeScript and [viem](https://viem.sh/) for bounded historical direct calls, receipt retrieval, validated RPC fallback, and resumable Parquet output.
 - **Data preparation:** Python with Pandas and NumPy.
-- **Modeling:** PyTorch for the MLP and scikit-learn for evaluation metrics.
+- **Modeling:** PyTorch for the MLP, gplearn for Genetic Programming, and scikit-learn for evaluation metrics.
 - **Storage:** Parquet datasets, with Google Colab available for experimentation and training. CSV export is deferred.
 
 The initial proof of concept will focus on a small, documented set of smart contracts and functions. Features must be available before execution and must not leak post-execution information into the prediction.
@@ -19,11 +19,23 @@ This repository supports the Advanced Artificial Intelligence course at UTN FRBA
 
 ## Status
 
-For the academic submission, open [the Python notebook in Google Colab](https://colab.research.google.com/github/brianUtn98/atlas-gasnet/blob/work/notebooks/atlas_gasnet_colab.ipynb).
-It downloads the published data, prepares the inputs, trains the MLP and evaluates
-the temporal and USDT test sets. It does not execute the TypeScript extractor or
-require RPC credentials. The [Colab data archive](data/colab/README.md) contains
-the original Parquet inputs and their manifests.
+The latest experiment is the [E3 MLP, Genetic Programming and baseline comparison](results/e3-2026-11-23/README.md).
+Open [the E3 Python notebook in Google Colab](https://colab.research.google.com/github/brianUtn98/atlas-gasnet/blob/work/notebooks/atlas_gasnet_e3_colab.ipynb)
+to inspect its retained models and results without extraction or retraining.
+Reproducing full E3 fitting requires its four original extraction directories;
+the published E2 archive does not contain E3.
+
+A separate [executed Colab reproduction](https://colab.research.google.com/drive/1KawDL44c8MWIt9HdeMObTE2OTJ_ZBaOR)
+and [report evidence](results/e3-colab-2026-11-23/README.md) retain actual cloud
+outputs, model weights, original figures and screenshots. This reproduction
+also scores the unchanged E2 model on the same E3 rows: E3 MLP improves temporal
+MAE, while the E2 reference has the lowest USDT error. Its MLP scores differ
+from the local run; the two environments remain separate.
+
+The earlier [E2 notebook](https://colab.research.google.com/github/brianUtn98/atlas-gasnet/blob/work/notebooks/atlas_gasnet_colab.ipynb)
+downloads its smaller published dataset, prepares inputs, trains the MLP and
+evaluates temporal and USDT tests without RPC credentials. The
+[Colab data archive](data/colab/README.md) contains those E2 Parquet inputs and manifests.
 
 The [versioned PoC dataset](data/poc/v1/README.md) contains 15,937 real Ethereum
 transactions in four disjoint train/validation/test/unseen-contract partitions,
@@ -55,8 +67,14 @@ MLP/symbolic/baseline evaluation. Its separate
 [Python notebook](notebooks/atlas_gasnet_e3_colab.ipynb) leaves final evaluation
 behind an explicit model-freeze step; E3 inputs must be supplied separately.
 
-**Proof of Concept — training and final evaluation completed in Colab.**
-The [retained experiment](results/colab-2026-10-21/README.md) records a temporal-test
+**E3 - training and final evaluation completed on local CPU, 2026-11-23.**
+The 399,174 observations include 155,435 training rows. Frozen MLP temporal-test
+MAE was 1,958.20 gas; symbolic temporal MAE was 5,249.89. On the separate unseen
+USDT contract, symbolic MAE was 3,360.01 versus 9,019.59 for MLP. This fixed-run
+comparison exposes a contract-shift limitation; no post-test tuning was performed.
+
+**E2 - training and final evaluation completed in Colab.**
+The earlier [retained E2 experiment](results/colab-2026-10-21/README.md) records a temporal-test
 MAE of 1,740.20 gas and a USDT-test MAE of 3,395.39 gas. These results concern the
 selected contracts and period; they do not establish accuracy for arbitrary calls.
 
